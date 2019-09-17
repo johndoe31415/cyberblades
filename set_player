@@ -1,0 +1,45 @@
+#!/usr/bin/python3
+#	pibeatsaber - Beat Saber historian application that tracks players
+#	Copyright (C) 2019-2019 Johannes Bauer
+#
+#	This file is part of pibeatsaber.
+#
+#	pibeatsaber is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	pibeatsaber is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+
+import sys
+import json
+import socket
+from FriendlyArgumentParser import FriendlyArgumentParser
+from Configuration import Configuration
+
+parser = FriendlyArgumentParser(description = "Beat Saber Historian, connects to local UNIX socket and sets the player's username.")
+parser.add_argument("-c", "--config-file", metavar = "filename", type = str, default = "configuration.json", help = "Specifies JSON config file to use. Defaults to %(default)s.")
+parser.add_argument("playername", metavar = "playername", type = str, help = "Name of the current player.")
+args = parser.parse_args(sys.argv[1:])
+
+config = Configuration(args.config_file)
+sockfile = config.subs(config["unix_socket"])
+
+conn = socket.socket(family = socket.AF_UNIX, type = socket.SOCK_STREAM, proto = 0)
+conn.connect(sockfile)
+
+cmd = {
+	"cmd": "set",
+	"current_player": args.playername,
+}
+cmd_str = (json.dumps(cmd) + "\n").encode("ascii")
+conn.send(cmd_str)
+conn.close()
