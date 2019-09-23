@@ -28,7 +28,7 @@
 #include <linux/fb.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include "framebuffer.h"
+#include "display_fb.h"
 
 #define BITMASK(bits)				((1 << (bits)) - 1)
 #define TRUNCATE_TO_BITS(x, bits)	((((x) / (1 << (8 - (bits))) & BITMASK(bits))))
@@ -38,11 +38,12 @@ static unsigned int display_get_mapped_size(const struct display_t *display) {
 }
 
 static void display_fill_16bit(struct display_t *display, uint16_t pixel) {
+	struct display_fb_ctx_t *ctx = (struct display_fb_ctx_t*)display->drv_context;
 	if (display->bits_per_pixel != 16) {
 		fprintf(stderr, "not 16bpp screen\n");
 		return;
 	}
-	uint16_t *screen = (uint16_t*)display->screen;
+	uint16_t *screen = (uint16_t*)ctx->screen;
 	for (unsigned int i = 0; i < display->width * display->height; i++) {
 		*screen = pixel;
 		screen++;
@@ -50,7 +51,8 @@ static void display_fill_16bit(struct display_t *display, uint16_t pixel) {
 }
 
 static void display_put_16bit(struct display_t *display, unsigned int x, unsigned int y, uint16_t pixel) {
-	uint16_t *screen = (uint16_t*)display->screen;
+	struct display_fb_ctx_t *ctx = (struct display_fb_ctx_t*)display->drv_context;
+	uint16_t *screen = (uint16_t*)ctx->screen;
 	screen[(y * display->width) + x] = pixel;
 }
 
@@ -62,7 +64,7 @@ static uint16_t rgb_to_16bit(uint32_t rgb) {
 	return pixel;
 }
 
-void display_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t rgb) {
+static void display_fb_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t rgb) {
 	if (display->bits_per_pixel == 16) {
 		uint16_t pixel = rgb_to_16bit(rgb);
 		display_put_16bit(display, x, y, pixel);
@@ -71,7 +73,7 @@ void display_put_pixel(struct display_t *display, unsigned int x, unsigned int y
 	}
 }
 
-void display_fill(struct display_t *display, uint32_t rgb) {
+static void display_fb_fill(struct display_t *display, uint32_t rgb) {
 	if (display->bits_per_pixel == 16) {
 		uint16_t pixel = rgb_to_16bit(rgb);
 		display_fill_16bit(display, pixel);
@@ -80,93 +82,61 @@ void display_fill(struct display_t *display, uint32_t rgb) {
 	}
 }
 
-struct display_t* display_init(const char *fbdev) {
+static bool display_fb_init(struct display_t *display, void *init_ctx) {
+	const char *fbdev = (const char*)init_ctx;
+	struct display_fb_ctx_t *ctx = (struct display_fb_ctx_t*)display->drv_context;
+
 	if (!fbdev) {
-		fprintf(stderr, "fbdev is NULL\n");
-		return NULL;
+		fprintf(stderr, "fbdev is NULL, not creating a hardware display.\n");
+		return false;
 	}
 
-	struct display_t *display = calloc(sizeof(struct display_t), 1);
-	if (!display) {
-		perror("calloc");
-		return NULL;
-	}
-
-	display->fd = open(fbdev, O_RDWR);
-	if (display->fd == -1) {
+	ctx->fd = open(fbdev, O_RDWR);
+	if (ctx->fd == -1) {
 		perror(fbdev);
-		free(display);
-		return NULL;
+		return false;
 	}
 
 	struct fb_var_screeninfo vinfo;
-	if (ioctl(display->fd, FBIOGET_VSCREENINFO, &vinfo) == -1) {
+	if (ioctl(ctx->fd, FBIOGET_VSCREENINFO, &vinfo) == -1) {
 		perror("ioctl(FBIOGET_VSCREENINFO)");
 		display_free(display);
-		return NULL;
+		return false;
 	}
 	display->width = vinfo.xres;
 	display->height = vinfo.yres;
 	display->bits_per_pixel = vinfo.bits_per_pixel;
 
-	display->screen = (uint8_t*)mmap(0, display_get_mapped_size(display), PROT_READ | PROT_WRITE, MAP_SHARED, display->fd, 0);
-	if (display->screen == (void*)-1) {
+	ctx->screen = (uint8_t*)mmap(0, display_get_mapped_size(display), PROT_READ | PROT_WRITE, MAP_SHARED, ctx->fd, 0);
+	if (ctx->screen == (void*)-1) {
 		perror("mmap");
-		display->screen = NULL;
-		display_free(display);
-		return NULL;
+		ctx->screen = NULL;
+		return false;
 	}
-	display->mmapped = true;
 
-	return display;
+	return true;
 }
 
-struct display_t* display_sw_init(unsigned int width, unsigned int height) {
-	const unsigned int bits_per_pixel = 16;
-	const unsigned int length = width * height * bits_per_pixel / 8;
-
-	struct display_t *display = calloc(sizeof(struct display_t) + length, 1);
-	if (!display) {
-		perror("calloc");
-		return NULL;
-	}
-
-	display->fd = -1;
-	display->screen = (uint8_t*)&display[1];
-	display->width = width;
-	display->bits_per_pixel = bits_per_pixel;
-	display->height = height;
-	display->mmapped = false;
-
-	return display;
-}
-
-void display_test(struct display_t *display) {
-	for (int i = 0; i < 256; i++) {
-		display_fill(display, MK_RGB(i, i, i));
-		usleep(10 * 1000);
-	}
-
-	display_fill(display, MK_RGB(0xff, 0, 0));
-	sleep(1);
-	display_fill(display, MK_RGB(0, 0xff, 0));
-	sleep(1);
-	display_fill(display, MK_RGB(0, 0, 0xff));
-	sleep(1);
-	display_fill(display, 0);
-}
-
-void display_free(struct display_t *display) {
-	if (!display) {
-		return;
-	}
-	if (display->screen && display->mmapped) {
-		if (munmap(display->screen, display_get_mapped_size(display))) {
+static void display_fb_free(struct display_t *display) {
+	struct display_fb_ctx_t *ctx = (struct display_fb_ctx_t*)display->drv_context;
+	if (ctx->screen) {
+		if (munmap(ctx->screen, display_get_mapped_size(display))) {
 			perror("munmap");
 		}
 	}
-	if (display->fd != -1) {
-		close(display->fd);
+	if (ctx->fd != -1) {
+		close(ctx->fd);
 	}
-	free(display);
 }
+
+static unsigned int display_fb_get_ctx_size(void) {
+	return sizeof(struct display_fb_ctx_t);
+}
+
+const struct display_calltable_t display_fb_calltable = {
+	.init = display_fb_init,
+	.free = display_fb_free,
+	.fill = display_fb_fill,
+	.put_pixel = display_fb_put_pixel,
+	.get_ctx_size = display_fb_get_ctx_size,
+};

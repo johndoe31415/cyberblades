@@ -20,30 +20,37 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __FRAMEBUFFER_H__
-#define __FRAMEBUFFER_H__
+#ifndef __DISPLAY_H__
+#define __DISPLAY_H__
 
 #include <stdint.h>
 #include <stdbool.h>
-
 #include "colors.h"
 
+struct display_calltable_t;
+
 struct display_t {
-	int fd;
-	uint8_t *screen;
-	bool mmapped;
 	unsigned int width;
 	unsigned int height;
 	unsigned int bits_per_pixel;
+	const struct display_calltable_t *calltable;
+	uint8_t drv_context[];
+};
+
+struct display_calltable_t {
+	bool (*init)(struct display_t *display, void *init_ctx);
+	void (*free)(struct display_t *display);
+	void (*fill)(struct display_t *display, uint32_t color);
+	void (*put_pixel)(struct display_t *display, unsigned int x, unsigned int y, uint32_t color);
+	unsigned int (*get_ctx_size)(void);
 };
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-void display_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t rgb);
-void display_fill(struct display_t *display, uint32_t rgb);
-struct display_t* display_init(const char *fbdev);
-struct display_t* display_sw_init(unsigned int width, unsigned int height);
-void display_test(struct display_t *display);
+struct display_t* display_init(const struct display_calltable_t *calltable, void *init_ctx);
 void display_free(struct display_t *display);
+void display_fill(struct display_t *display, uint32_t color);
+void display_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t color);
+void display_test(struct display_t *display);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

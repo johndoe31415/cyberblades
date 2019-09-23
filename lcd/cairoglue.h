@@ -20,28 +20,14 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <stdlib.h>
-#include "clock.h"
+#ifndef __CAIROGLUE_H__
+#define __CAIROGLUE_H__
 
-static void set_timezone(const char *tzname) {
-	if (tzname) {
-		char env_var[strlen(tzname) + 2];
-		snprintf(env_var, sizeof(env_var), ":%s", tzname);
-		setenv("TZ", env_var, 1);
-	} else {
-		unsetenv("TZ");
-	}
-	tzset();
-}
+#include "display.h"
+#include "cairo.h"
 
-void format_time_hh_mm(time_t ts, char *result, size_t maxlen, const char *fmt, const char *tzname) {
-	const char *previous_tz = getenv("TZ");
-	set_timezone(tzname);
-	struct tm tm;
-	localtime_r(&ts, &tm);
-	strftime(result, maxlen, fmt, &tm);
-	set_timezone(previous_tz);
-}
+/*************** AUTO GENERATED SECTION FOLLOWS ***************/
+void blit_swbuf_on_display(struct cairo_swbuf_t *swbuf, struct display_t *target);
+/***************  AUTO GENERATED SECTION ENDS   ***************/
+
+#endif

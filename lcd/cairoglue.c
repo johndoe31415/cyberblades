@@ -20,13 +20,13 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __CLOCK_H__
-#define __CLOCK_H__
+#include "cairoglue.h"
 
-#include <time.h>
-
-/*************** AUTO GENERATED SECTION FOLLOWS ***************/
-void format_time_hh_mm(time_t ts, char *result, size_t maxlen, const char *fmt, const char *tzname);
-/***************  AUTO GENERATED SECTION ENDS   ***************/
-
-#endif
+void blit_swbuf_on_display(struct cairo_swbuf_t *swbuf, struct display_t *target) {
+	for (int y = 0; y < swbuf->height; y++) {
+		for (int x = 0; x < swbuf->width; x++) {
+			uint32_t rgb = swbuf_get_pixel(swbuf, x, y);
+			display_put_pixel(target, x, y, rgb);
+		}
+	}
+}

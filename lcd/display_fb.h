@@ -20,21 +20,23 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __COLORS_H__
-#define __COLORS_H__
+#ifndef __DISPLAY_FB_H__
+#define __DISPLAY_FB_H__
 
-#define UINT8(x)					((x) & 0xff)
-#define GET_R(rgb)					UINT8((rgb) >> 16)
-#define GET_G(rgb)					UINT8((rgb) >> 8)
-#define GET_B(rgb)					UINT8((rgb) >> 0)
+#include <stdint.h>
+#include <stdbool.h>
 
-#define MK_RGB(r, g, b)				((UINT8(r) << 16) | (UINT8(g) << 8) | (UINT8(b) << 0))
+#include "display.h"
+#include "colors.h"
 
-#define COLOR_BLACK					MK_RGB(0x00, 0x00, 0x00)
-#define COLOR_RED					MK_RGB(0xff, 0x00, 0x00)
-#define COLOR_GREEN					MK_RGB(0xff, 0xff, 0x00)
-#define COLOR_BLUE					MK_RGB(0xff, 0x00, 0xff)
-#define COLOR_WHITE					MK_RGB(0xff, 0xff, 0xff)
-#define COLOR_GRAY					MK_RGB(0x80, 0x80, 0x80)
+struct display_fb_ctx_t {
+	int fd;
+	uint8_t *screen;
+};
+
+extern const struct display_calltable_t display_fb_calltable;
+
+/*************** AUTO GENERATED SECTION FOLLOWS ***************/
+/***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

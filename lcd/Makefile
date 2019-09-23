@@ -14,15 +14,16 @@ CFLAGS += `pkg-config --cflags cairo`
 LDFLAGS := `pkg-config --libs cairo` -lfontconfig
 
 ifeq ($(DEVELOPMENT),1)
-CFLAGS += -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2
+#CFLAGS += -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2
 TEST_FLAGS += 
 endif
 
 SPECIFIC_OBJS := test_display.o
 OBJS := \
 	cairo.o \
-	clock.o \
-	framebuffer.o
+	display.o \
+	display_fb.o \
+	cairoglue.o
 
 BINARIES := test_display
 
