@@ -26,17 +26,17 @@
 
 #include "display.h"
 #include "display_fb.h"
-#include "display_sdl.h"
 #include "cairo.h"
 #include "cairoglue.h"
+#ifdef BUILD_WITH_SDL
+#include "display_sdl.h"
+#endif
 
 static void swbuf_render(struct cairo_swbuf_t *swbuf) {
-	static uint8_t counter;
-	swbuf_clear(swbuf, COLOR_GRAY);
+	swbuf_clear(swbuf, COLOR_BS_DARKBLUE);
 
 	{
 		struct font_placement_t placement = {
-			//.font_face = "Latin Modern Mono",
 			.font_face = "Beon",
 			.font_size = 32,
 			.font_color = COLOR_BS_RED,
@@ -44,7 +44,18 @@ static void swbuf_render(struct cairo_swbuf_t *swbuf) {
 			.yanchor = YPOS_TOP,
 			.yoffset = 10,
 		};
-		swbuf_text(swbuf, &placement, "Cyber Blades %d", counter++);
+		swbuf_text(swbuf, &placement, "Cyber");
+	}
+	{
+		struct font_placement_t placement = {
+			.font_face = "Beon",
+			.font_size = 32,
+			.font_color = COLOR_BS_BLUE,
+			.xanchor = XPOS_CENTER,
+			.yanchor = YPOS_TOP,
+			.yoffset = 10 + 32,
+		};
+		swbuf_text(swbuf, &placement, "Blades");
 	}
 }
 
@@ -59,13 +70,16 @@ int main(int argc, char **argv) {
 	if (argc == 2) {
 		const char *filename = argv[1];
 		display = display_init(&display_fb_calltable, event_callback, (void*)filename);
+#ifdef BUILD_WITH_SDL
 	} else {
 		struct display_sdl_init_t init_params = {
 			.width = 320,
 			.height = 240,
 		};
 		display = display_init(&display_sdl_calltable, event_callback, &init_params);
+#endif
 	}
+	cairo_addfont("beon/beon-webfont.ttf");
 
 	if (!display) {
 		fprintf(stderr, "Could not create display.\n");

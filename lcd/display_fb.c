@@ -106,6 +106,7 @@ static bool display_fb_init(struct display_t *display, void *init_ctx) {
 	display->width = vinfo.xres;
 	display->height = vinfo.yres;
 	display->bits_per_pixel = vinfo.bits_per_pixel;
+	fprintf(stderr, "Initiated framebuffer device %d x %d pixels at %d BPP\n", display->width, display->height, display->bits_per_pixel);
 
 	ctx->screen = (uint8_t*)mmap(0, display_get_mapped_size(display), PROT_READ | PROT_WRITE, MAP_SHARED, ctx->fd, 0);
 	if (ctx->screen == (void*)-1) {
