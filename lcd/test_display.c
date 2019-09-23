@@ -48,17 +48,23 @@ static void swbuf_render(struct cairo_swbuf_t *swbuf) {
 	}
 }
 
+static void event_callback(struct display_t *display, enum display_event_t event_type, void *event) {
+	if (event_type == EVENT_QUIT) {
+		exit(EXIT_SUCCESS);
+	}
+}
+
 int main(int argc, char **argv) {
 	struct display_t *display = NULL;
 	if (argc == 2) {
 		const char *filename = argv[1];
-		display = display_init(&display_fb_calltable, (void*)filename);
+		display = display_init(&display_fb_calltable, event_callback, (void*)filename);
 	} else {
 		struct display_sdl_init_t init_params = {
 			.width = 320,
 			.height = 240,
 		};
-		display = display_init(&display_sdl_calltable, &init_params);
+		display = display_init(&display_sdl_calltable, event_callback, &init_params);
 	}
 
 	if (!display) {
@@ -71,12 +77,6 @@ int main(int argc, char **argv) {
 		swbuf_render(swbuf);
 		blit_swbuf_on_display(swbuf, display);
 		display_commit(display);
-#if 0
-		if (!display->mmapped) {
-			swbuf_dump(swbuf, "output.png");
-			break;
-		}
-#endif
 		sleep(1);
 	}
 	free_swbuf(swbuf);

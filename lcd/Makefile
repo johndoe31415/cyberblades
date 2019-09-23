@@ -9,7 +9,7 @@ DEVELOPMENT := 1
 endif
 
 CFLAGS := -O3 -std=c11 -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500
-CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch
+CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread
 CFLAGS += `pkg-config --cflags cairo`
 LDFLAGS := `pkg-config --libs cairo` -lfontconfig
 

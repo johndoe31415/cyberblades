@@ -45,6 +45,38 @@ static void display_sdl_fill(struct display_t *display, uint32_t rgb) {
 	SDL_UpdateWindowSurface(ctx->window);
 }
 
+static void display_sdl_handle_event(struct display_t *display, SDL_Event *event) {
+	if (!display->event_callback) {
+		/* We cannot callback anyways, discard event */
+		return;
+	}
+
+	//struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
+	if (event->type == SDL_WINDOWEVENT) {
+		if (event->window.event == SDL_WINDOWEVENT_CLOSE) {
+			display->event_callback(display, EVENT_QUIT, NULL);
+		}
+	} else if (event->type == SDL_KEYDOWN) {
+		if (event->key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+			display->event_callback(display, EVENT_QUIT, NULL);
+		}
+	} else {
+		//printf("Unhandled event type 0x%x\n", event->type);
+	}
+}
+
+static void* display_sdl_eventthread_fnc(void *vdisplay) {
+	struct display_t *display = (struct display_t*)vdisplay;
+	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
+	while (ctx->running) {
+		SDL_Event event;
+		if (SDL_WaitEventTimeout(&event, 500)) {
+			display_sdl_handle_event(display, &event);
+		}
+	}
+	return NULL;
+}
+
 static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
 	struct display_sdl_init_t *initctx = (struct display_sdl_init_t*)init_ctx;
@@ -65,11 +97,16 @@ static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 
 	ctx->surface = SDL_GetWindowSurface(ctx->window);
 
+	ctx->running = true;
+	pthread_create(&ctx->event_thread, NULL, display_sdl_eventthread_fnc, display);
+
 	return true;
 }
 
 static void display_sdl_free(struct display_t *display) {
 	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
+	ctx->running = false;
+	pthread_join(ctx->event_thread, NULL);
 	SDL_DestroyWindow(ctx->window);
 	SDL_Quit();
 }

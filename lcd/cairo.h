@@ -62,6 +62,7 @@ uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, un
 void swbuf_text(struct cairo_swbuf_t *surface, struct font_placement_t *options, const char *fmt, ...);
 void swbuf_dump(struct cairo_swbuf_t *surface, const char *png_filename);
 void free_swbuf(struct cairo_swbuf_t *buffer);
+void cairo_addfont(const char *font_ttf_filename);
 void cairo_cleanup(void);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 

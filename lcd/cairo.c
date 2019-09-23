@@ -122,6 +122,10 @@ void free_swbuf(struct cairo_swbuf_t *buffer) {
 	free(buffer);
 }
 
+void cairo_addfont(const char *font_ttf_filename) {
+	FcConfigAppFontAddFile(FcConfigGetCurrent(), (uint8_t*)font_ttf_filename);
+}
+
 void cairo_cleanup(void) {
 	/* Super stupid workaround to be able to properly memcheck -- WE (!) need
 	 * to tell fontconfig to get its shit together even though it's Cairo's (!!)

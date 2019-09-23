@@ -24,11 +24,14 @@
 #define __DISPLAY_SDL_H__
 
 #include <SDL2/SDL.h>
+#include <pthread.h>
 #include "display.h"
 
 struct display_sdl_ctx_t {
 	SDL_Window *window;
 	SDL_Surface *surface;
+	pthread_t event_thread;
+	bool running;
 };
 
 struct display_sdl_init_t {
