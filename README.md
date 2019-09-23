@@ -30,6 +30,14 @@ elements (e.g., LED ring progress meters or similar).
 That said, it's in a very early development stage and currently not meant yet
 for public use. Bear with me, please.
 
+## Raspberry Pi Configuration
+I'm using a Raspberry Pi 3B+ with an ILI9340 display board that uses the
+fb_ili9340 kernel driver. /boot/config.txt has been extended by:
+
+```
+dtoverlay=waveshare32bOC:rotate=270
+```
+
 ## Acknowledgements
 [opl-](https://github.com/opl-) -- you totally rock. Thank you so much for
 building your amazing BeatSaber plugin and making it possible for non-C# people
