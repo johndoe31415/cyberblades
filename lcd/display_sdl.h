@@ -20,24 +20,24 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __COLORS_H__
-#define __COLORS_H__
+#ifndef __DISPLAY_SDL_H__
+#define __DISPLAY_SDL_H__
 
-#define UINT8(x)					((x) & 0xff)
-#define GET_R(rgb)					UINT8((rgb) >> 16)
-#define GET_G(rgb)					UINT8((rgb) >> 8)
-#define GET_B(rgb)					UINT8((rgb) >> 0)
+#include <SDL2/SDL.h>
+#include "display.h"
 
-#define MK_RGB(r, g, b)				((UINT8(r) << 16) | (UINT8(g) << 8) | (UINT8(b) << 0))
+struct display_sdl_ctx_t {
+	SDL_Window *window;
+	SDL_Surface *surface;
+};
 
-#define COLOR_BLACK					MK_RGB(0x00, 0x00, 0x00)
-#define COLOR_RED					MK_RGB(0xff, 0x00, 0x00)
-#define COLOR_GREEN					MK_RGB(0xff, 0xff, 0x00)
-#define COLOR_BLUE					MK_RGB(0xff, 0x00, 0xff)
-#define COLOR_WHITE					MK_RGB(0xff, 0xff, 0xff)
-#define COLOR_GRAY					MK_RGB(0x80, 0x80, 0x80)
-#define COLOR_BS_RED				MK_RGB(0xdf, 0x20, 0x33)
-#define COLOR_BS_BLUE				MK_RGB(0x38, 0x6c, 0xb6)
+struct display_sdl_init_t {
+	unsigned int width, height;
+};
 
+extern const struct display_calltable_t display_sdl_calltable;
+
+/*************** AUTO GENERATED SECTION FOLLOWS ***************/
+/***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

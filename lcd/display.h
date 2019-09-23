@@ -42,6 +42,7 @@ struct display_calltable_t {
 	void (*free)(struct display_t *display);
 	void (*fill)(struct display_t *display, uint32_t color);
 	void (*put_pixel)(struct display_t *display, unsigned int x, unsigned int y, uint32_t color);
+	void (*commit)(struct display_t *display);
 	unsigned int (*get_ctx_size)(void);
 };
 
@@ -49,6 +50,7 @@ struct display_calltable_t {
 struct display_t* display_init(const struct display_calltable_t *calltable, void *init_ctx);
 void display_free(struct display_t *display);
 void display_fill(struct display_t *display, uint32_t color);
+void display_commit(struct display_t *display);
 void display_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t color);
 void display_test(struct display_t *display);
 /***************  AUTO GENERATED SECTION ENDS   ***************/

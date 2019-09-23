@@ -13,6 +13,9 @@ CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-functi
 CFLAGS += `pkg-config --cflags cairo`
 LDFLAGS := `pkg-config --libs cairo` -lfontconfig
 
+CFLAGS += `pkg-config --cflags sdl2`
+LDFLAGS += `pkg-config --libs sdl2`
+
 ifeq ($(DEVELOPMENT),1)
 #CFLAGS += -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2
 TEST_FLAGS += 
@@ -23,6 +26,7 @@ OBJS := \
 	cairo.o \
 	display.o \
 	display_fb.o \
+	display_sdl.o \
 	cairoglue.o
 
 BINARIES := test_display
@@ -39,7 +43,8 @@ clean:
 	rm -f out.png output.png
 
 test: all
-	./test_display /dev/fb1
+#	./test_display /dev/fb1
+	./test_display
 
 .c.o:
 	$(CC) $(CFLAGS) -c -o $@ $<

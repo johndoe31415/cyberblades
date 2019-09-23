@@ -26,6 +26,7 @@
 
 #include "display.h"
 #include "display_fb.h"
+#include "display_sdl.h"
 #include "cairo.h"
 #include "cairoglue.h"
 
@@ -35,14 +36,15 @@ static void swbuf_render(struct cairo_swbuf_t *swbuf) {
 
 	{
 		struct font_placement_t placement = {
-			.font_face = "Latin Modern Mono",
-			.font_size = 92,
-			.font_color = COLOR_WHITE,
+			//.font_face = "Latin Modern Mono",
+			.font_face = "Beon",
+			.font_size = 32,
+			.font_color = COLOR_BS_RED,
 			.xanchor = XPOS_CENTER,
 			.yanchor = YPOS_TOP,
 			.yoffset = 10,
 		};
-		swbuf_text(swbuf, &placement, "Foobar %d", counter++);
+		swbuf_text(swbuf, &placement, "Cyber Blades %d", counter++);
 	}
 }
 
@@ -52,13 +54,11 @@ int main(int argc, char **argv) {
 		const char *filename = argv[1];
 		display = display_init(&display_fb_calltable, (void*)filename);
 	} else {
-#if 0
-		struct display_init_sdl_t init_params = {
+		struct display_sdl_init_t init_params = {
 			.width = 320,
 			.height = 240,
 		};
 		display = display_init(&display_sdl_calltable, &init_params);
-#endif
 	}
 
 	if (!display) {
@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < 10; i++) {
 		swbuf_render(swbuf);
 		blit_swbuf_on_display(swbuf, display);
+		display_commit(display);
 #if 0
 		if (!display->mmapped) {
 			swbuf_dump(swbuf, "output.png");

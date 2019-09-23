@@ -40,6 +40,12 @@ void display_fill(struct display_t *display, uint32_t color) {
 	display->calltable->fill(display, color);
 }
 
+void display_commit(struct display_t *display) {
+	if (display->calltable->commit) {
+		display->calltable->commit(display);
+	}
+}
+
 void display_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t color) {
 	display->calltable->put_pixel(display, x, y, color);
 }
