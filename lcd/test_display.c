@@ -69,14 +69,15 @@ int main(int argc, char **argv) {
 	struct display_t *display = NULL;
 	if (argc == 2) {
 		const char *filename = argv[1];
-		display = display_init(&display_fb_calltable, event_callback, (void*)filename);
+		display = display_init(&display_fb_calltable, (void*)filename);
 #ifdef BUILD_WITH_SDL
 	} else {
 		struct display_sdl_init_t init_params = {
 			.width = 320,
 			.height = 240,
 		};
-		display = display_init(&display_sdl_calltable, event_callback, &init_params);
+		display = display_init(&display_sdl_calltable, &init_params);
+		display_sdl_register_events(display, event_callback);
 #endif
 	}
 	cairo_addfont("beon/beon-webfont.ttf");

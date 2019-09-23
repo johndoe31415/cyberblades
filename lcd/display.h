@@ -25,6 +25,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include "colors.h"
 
 enum display_event_t {
@@ -35,12 +36,18 @@ struct display_t;
 struct display_calltable_t;
 typedef void (*display_event_cb_t)(struct display_t *display, enum display_event_t event_type, void *event);
 
+struct hmi_event_t {
+	display_event_cb_t event_callback;
+	pthread_t event_thread;
+	bool thread_running;
+};
+
 struct display_t {
 	unsigned int width;
 	unsigned int height;
 	unsigned int bits_per_pixel;
 	const struct display_calltable_t *calltable;
-	display_event_cb_t event_callback;
+	struct hmi_event_t hmi_events;
 	uint8_t drv_context[];
 };
 
@@ -54,7 +61,7 @@ struct display_calltable_t {
 };
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-struct display_t* display_init(const struct display_calltable_t *calltable, display_event_cb_t event_callback, void *init_ctx);
+struct display_t* display_init(const struct display_calltable_t *calltable, void *init_ctx);
 void display_free(struct display_t *display);
 void display_fill(struct display_t *display, uint32_t color);
 void display_commit(struct display_t *display);

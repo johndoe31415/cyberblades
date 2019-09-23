@@ -46,7 +46,7 @@ static void display_sdl_fill(struct display_t *display, uint32_t rgb) {
 }
 
 static void display_sdl_handle_event(struct display_t *display, SDL_Event *event) {
-	if (!display->event_callback) {
+	if (!display->hmi_events.event_callback) {
 		/* We cannot callback anyways, discard event */
 		return;
 	}
@@ -54,11 +54,11 @@ static void display_sdl_handle_event(struct display_t *display, SDL_Event *event
 	//struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
 	if (event->type == SDL_WINDOWEVENT) {
 		if (event->window.event == SDL_WINDOWEVENT_CLOSE) {
-			display->event_callback(display, EVENT_QUIT, NULL);
+			display->hmi_events.event_callback(display, EVENT_QUIT, NULL);
 		}
 	} else if (event->type == SDL_KEYDOWN) {
 		if (event->key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-			display->event_callback(display, EVENT_QUIT, NULL);
+			display->hmi_events.event_callback(display, EVENT_QUIT, NULL);
 		}
 	} else {
 		//printf("Unhandled event type 0x%x\n", event->type);
@@ -67,8 +67,7 @@ static void display_sdl_handle_event(struct display_t *display, SDL_Event *event
 
 static void* display_sdl_eventthread_fnc(void *vdisplay) {
 	struct display_t *display = (struct display_t*)vdisplay;
-	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
-	while (ctx->running) {
+	while (display->hmi_events.thread_running) {
 		SDL_Event event;
 		if (SDL_WaitEventTimeout(&event, 500)) {
 			display_sdl_handle_event(display, &event);
@@ -97,22 +96,24 @@ static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 
 	ctx->surface = SDL_GetWindowSurface(ctx->window);
 
-	ctx->running = true;
-	pthread_create(&ctx->event_thread, NULL, display_sdl_eventthread_fnc, display);
 
 	return true;
 }
 
 static void display_sdl_free(struct display_t *display) {
 	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
-	ctx->running = false;
-	pthread_join(ctx->event_thread, NULL);
 	SDL_DestroyWindow(ctx->window);
 	SDL_Quit();
 }
 
 static unsigned int display_sdl_get_ctx_size(void) {
 	return sizeof(struct display_sdl_ctx_t);
+}
+
+void display_sdl_register_events(struct display_t *display, display_event_cb_t event_callback) {
+	display->hmi_events.event_callback = event_callback;
+	display->hmi_events.thread_running = true;
+	pthread_create(&display->hmi_events.event_thread, NULL, display_sdl_eventthread_fnc, display);
 }
 
 const struct display_calltable_t display_sdl_calltable = {

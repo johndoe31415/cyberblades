@@ -22,18 +22,22 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "display.h"
 
-struct display_t* display_init(const struct display_calltable_t *calltable, display_event_cb_t event_callback, void *init_ctx) {
+struct display_t* display_init(const struct display_calltable_t *calltable, void *init_ctx) {
 	unsigned int drv_size = calltable->get_ctx_size();
 	struct display_t *display = calloc(sizeof(struct display_t) + drv_size, 1);
 	display->calltable = calltable;
-	display->event_callback = event_callback;
 	display->calltable->init(display, init_ctx);
 	return display;
 }
 
 void display_free(struct display_t *display) {
+	if (display->hmi_events.thread_running) {
+		display->hmi_events.thread_running = false;
+		pthread_join(display->hmi_events.event_thread, NULL);
+	}
 	display->calltable->free(display);
 }
 
