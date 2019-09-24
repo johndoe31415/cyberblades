@@ -160,4 +160,8 @@ class BeatSaberHistorian():
 		loop.create_task(self._create_local_server())
 		loop.create_task(self._connect_beatsaber())
 #		loop.create_task(self._feed_mock_data())
-		loop.run_forever()
+		try:
+			loop.run_forever()
+		except KeyboardInterrupt:
+			with contextlib.suppress(FileNotFoundError):
+				os.unlink(self._subs(self._config["unix_socket"]))
