@@ -39,15 +39,23 @@ struct server_state_t {
 
 static void swbuf_render(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
 	swbuf_clear(swbuf, COLOR_BS_DARKBLUE);
-
 	{
 		const struct font_placement_t placement = {
 			.font_face = "Beon",
 			.font_size = 32,
 			.font_color = COLOR_BS_RED,
-			.xanchor = XPOS_CENTER,
-			.yanchor = YPOS_TOP,
-			.yoffset = 10,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_RIGHT,
+					.y = YPOS_TOP,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 4,
+				.xoffset = -12,
+			}
 		};
 		swbuf_text(swbuf, &placement, "Cyber");
 	}
@@ -56,9 +64,18 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 			.font_face = "Beon",
 			.font_size = 32,
 			.font_color = COLOR_BS_BLUE,
-			.xanchor = XPOS_CENTER,
-			.yanchor = YPOS_TOP,
-			.yoffset = 10 + 32,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_LEFT,
+					.y = YPOS_TOP,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 4,
+				.xoffset = 0,
+			}
 		};
 		swbuf_text(swbuf, &placement, "Blades");
 	}
@@ -68,13 +85,19 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 			.font_face = "Latin Modern Sans",
 			.font_size = 16,
 			.font_color = COLOR_BS_BLUE,
-			.xanchor = XPOS_CENTER,
-			.yanchor = YPOS_BOTTOM,
-			.yoffset = -9,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_CENTER,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_BOTTOM,
+				},
+				.yoffset = -20,
+			}
 		};
 		const struct anchored_placement_t rect_placement = {
-			.width = 200,
-			.height = 25,
 			.src_anchor = {
 				.x = XPOS_CENTER,
 				.y = YPOS_BOTTOM,
@@ -89,8 +112,11 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 			case UNCONNECTED:
 				swbuf_rect(swbuf, &(const struct rect_placement_t){
 					.placement = rect_placement,
-					.fill_color = COLOR_POMEGRANATE,
+					.color = COLOR_POMEGRANATE,
+					.fill = true,
 					.round = 10,
+					.width = 200,
+					.height = 25,
 				});
 				swbuf_text(swbuf, &text_placement, "Historian unavailable");
 				break;
@@ -98,8 +124,11 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 			case CONNECTED_WAITING:
 				swbuf_rect(swbuf, &(const struct rect_placement_t){
 					.placement = rect_placement,
-					.fill_color = COLOR_SUN_FLOWER,
+					.color = COLOR_SUN_FLOWER,
+					.fill = true,
 					.round = 10,
+					.width = 110,
+					.height = 25,
 				});
 				swbuf_text(swbuf, &text_placement, "Unconnected");
 				break;
@@ -107,14 +136,16 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 			case CONNECTED_READY:
 				swbuf_rect(swbuf, &(const struct rect_placement_t){
 					.placement = rect_placement,
-					.fill_color = COLOR_EMERLAND,
+					.color = COLOR_EMERLAND,
+					.fill = true,
 					.round = 10,
+					.width = 200,
+					.height = 25,
 				});
 				swbuf_text(swbuf, &text_placement, "Ready for action");
 				break;
 		}
 	}
-
 }
 
 static void event_callback(enum ui_eventtype_t event_type, void *vevent) {

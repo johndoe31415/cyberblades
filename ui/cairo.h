@@ -24,6 +24,7 @@
 #define __CAIRO_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <cairo/cairo.h>
 #include "colors.h"
 
@@ -46,17 +47,7 @@ enum yanchor_t {
 	YPOS_BOTTOM
 };
 
-struct font_placement_t {
-	enum xanchor_t xanchor;
-	enum yanchor_t yanchor;
-	int xoffset, yoffset;
-	const char *font_face;
-	unsigned int font_size;
-	uint32_t font_color;
-};
-
 struct anchored_placement_t {
-	unsigned int width, height;
 	int xoffset, yoffset;
 	struct {
 		enum xanchor_t x;
@@ -68,12 +59,20 @@ struct anchored_placement_t {
 	} src_anchor;
 };
 
-struct rect_placement_t {
+struct font_placement_t {
 	struct anchored_placement_t placement;
-	unsigned int round;
-	uint32_t fill_color;
+	const char *font_face;
+	unsigned int font_size;
+	uint32_t font_color;
 };
 
+struct rect_placement_t {
+	struct anchored_placement_t placement;
+	unsigned int width, height;
+	unsigned int round;
+	uint32_t color;
+	bool fill;
+};
 
 struct coordinate_t {
 	int x, y;
