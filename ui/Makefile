@@ -25,7 +25,7 @@ ifeq ($(DEVELOPMENT),1)
 TEST_FLAGS +=
 endif
 
-SPECIFIC_OBJS := test_display.o
+SPECIFIC_OBJS := cyberblades-ui.o
 OBJS := \
 	cairo.o \
 	display.o \
@@ -38,11 +38,11 @@ ifeq ($(DEVELOPMENT),1)
 OBJS +=	display_sdl.o
 endif
 
-BINARIES := test_display
+BINARIES := cyberblades-ui
 
 all: $(BINARIES)
 
-test_display: test_display.o $(OBJS)
+cyberblades-ui: cyberblades-ui.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
@@ -53,9 +53,9 @@ clean:
 
 test: all
 ifeq ($(DEVELOPMENT),1)
-	./test_display
+	./cyberblades-ui
 else
-	./test_display /dev/fb1
+	./cyberblades-ui /dev/fb1
 endif
 
 .c.o:

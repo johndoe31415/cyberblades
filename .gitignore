@@ -2,4 +2,4 @@
 *.o
 __pycache__
 historian/history
-ui/test_display
+ui/cyberblades-ui
