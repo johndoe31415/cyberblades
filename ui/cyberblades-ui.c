@@ -32,134 +32,234 @@
 #include "display_sdl.h"
 #endif
 #include "historian.h"
+#include "tools.h"
+
+enum ui_screen_t {
+	MAIN_SCREEN = 0,
+	GAME_SCREEN = 1,
+	FINISH_SCREEN = 2,
+};
 
 struct server_state_t {
+	enum ui_screen_t ui_screen;
+	double screen_shown_at_ts;
+	char current_player[32];
+	unsigned int current_playtime;
+	unsigned int score_sum;
+	const char *song_author;
+	const char *song_title;
+	const char *level_author;
+	unsigned int current_score;
 	struct historian_t *historian;
 };
 
 static void swbuf_render(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
 	swbuf_clear(swbuf, COLOR_BS_DARKBLUE);
-	{
-		const struct font_placement_t placement = {
-			.font_face = "Beon",
-			.font_size = 32,
-			.font_color = COLOR_BS_RED,
-			.placement = {
-				.src_anchor = {
-					.x = XPOS_RIGHT,
-					.y = YPOS_TOP,
-				},
-				.dst_anchor = {
-					.x = XPOS_CENTER,
-					.y = YPOS_TOP,
-				},
-				.yoffset = 4,
-				.xoffset = -12,
-			}
-		};
-		swbuf_text(swbuf, &placement, "Cyber");
-	}
-	{
-		const struct font_placement_t placement = {
-			.font_face = "Beon",
-			.font_size = 32,
-			.font_color = COLOR_BS_BLUE,
-			.placement = {
-				.src_anchor = {
-					.x = XPOS_LEFT,
-					.y = YPOS_TOP,
-				},
-				.dst_anchor = {
-					.x = XPOS_CENTER,
-					.y = YPOS_TOP,
-				},
-				.yoffset = 4,
-				.xoffset = 0,
-			}
-		};
-		swbuf_text(swbuf, &placement, "Blades");
-	}
+	if (server_state->ui_screen == MAIN_SCREEN) {
+		{
+			const struct font_placement_t placement = {
+				.font_face = "Beon",
+				.font_size = 32,
+				.font_color = COLOR_BS_RED,
+				.placement = {
+					.src_anchor = {
+						.x = XPOS_RIGHT,
+						.y = YPOS_TOP,
+					},
+					.dst_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_TOP,
+					},
+					.yoffset = 4,
+					.xoffset = -12,
+				}
+			};
+			swbuf_text(swbuf, &placement, "Cyber");
+		}
+		{
+			const struct font_placement_t placement = {
+				.font_face = "Beon",
+				.font_size = 32,
+				.font_color = COLOR_BS_BLUE,
+				.placement = {
+					.src_anchor = {
+						.x = XPOS_LEFT,
+						.y = YPOS_TOP,
+					},
+					.dst_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_TOP,
+					},
+					.yoffset = 4,
+					.xoffset = 0,
+				}
+			};
+			swbuf_text(swbuf, &placement, "Blades");
+		}
 
-	{
-		const struct font_placement_t text_placement = {
-			.font_face = "Latin Modern Sans",
-			.font_size = 16,
-			.font_color = COLOR_BS_BLUE,
-			.placement = {
+		{
+			const struct font_placement_t text_placement = {
+				.font_face = "Latin Modern Sans",
+				.font_size = 16,
+				.font_color = COLOR_BS_BLUE,
+				.placement = {
+					.src_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_CENTER,
+					},
+					.dst_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_BOTTOM,
+					},
+					.yoffset = -20,
+				}
+			};
+			const struct anchored_placement_t rect_placement = {
 				.src_anchor = {
 					.x = XPOS_CENTER,
-					.y = YPOS_CENTER,
+					.y = YPOS_BOTTOM,
 				},
 				.dst_anchor = {
 					.x = XPOS_CENTER,
 					.y = YPOS_BOTTOM,
 				},
-				.yoffset = -20,
+				.yoffset = -3,
+			};
+			switch (server_state->historian->connection_state) {
+				case UNCONNECTED:
+					swbuf_rect(swbuf, &(const struct rect_placement_t){
+						.placement = rect_placement,
+						.color = COLOR_POMEGRANATE,
+						.fill = true,
+						.round = 10,
+						.width = 200,
+						.height = 25,
+					});
+					swbuf_text(swbuf, &text_placement, "Historian unavailable");
+					break;
+
+				case CONNECTED_WAITING:
+					swbuf_rect(swbuf, &(const struct rect_placement_t){
+						.placement = rect_placement,
+						.color = COLOR_SUN_FLOWER,
+						.fill = true,
+						.round = 10,
+						.width = 200,
+						.height = 25,
+					});
+					swbuf_text(swbuf, &text_placement, "Unconnected");
+					break;
+
+				case CONNECTED_READY:
+					swbuf_rect(swbuf, &(const struct rect_placement_t){
+						.placement = rect_placement,
+						.color = COLOR_EMERLAND,
+						.fill = true,
+						.round = 10,
+						.width = 200,
+						.height = 25,
+					});
+					swbuf_text(swbuf, &text_placement, "Ready for action");
+					break;
 			}
-		};
-		const struct anchored_placement_t rect_placement = {
-			.src_anchor = {
-				.x = XPOS_CENTER,
-				.y = YPOS_BOTTOM,
-			},
-			.dst_anchor = {
-				.x = XPOS_CENTER,
-				.y = YPOS_BOTTOM,
-			},
-			.yoffset = -3,
-		};
-		switch (server_state->historian->connection_state) {
-			case UNCONNECTED:
-				swbuf_rect(swbuf, &(const struct rect_placement_t){
-					.placement = rect_placement,
-					.color = COLOR_POMEGRANATE,
-					.fill = true,
-					.round = 10,
-					.width = 200,
-					.height = 25,
-				});
-				swbuf_text(swbuf, &text_placement, "Historian unavailable");
-				break;
-
-			case CONNECTED_WAITING:
-				swbuf_rect(swbuf, &(const struct rect_placement_t){
-					.placement = rect_placement,
-					.color = COLOR_SUN_FLOWER,
-					.fill = true,
-					.round = 10,
-					.width = 110,
-					.height = 25,
-				});
-				swbuf_text(swbuf, &text_placement, "Unconnected");
-				break;
-
-			case CONNECTED_READY:
-				swbuf_rect(swbuf, &(const struct rect_placement_t){
-					.placement = rect_placement,
-					.color = COLOR_EMERLAND,
-					.fill = true,
-					.round = 10,
-					.width = 200,
-					.height = 25,
-				});
-				swbuf_text(swbuf, &text_placement, "Ready for action");
-				break;
 		}
+
+		{
+			const struct font_placement_t text_placement = {
+				.font_face = "Latin Modern Sans",
+				.font_size = 24,
+				.font_color = server_state->current_player[0] ? COLOR_SILVER : COLOR_POMEGRANATE,
+				.placement = {
+					.src_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_CENTER,
+					},
+					.dst_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_TOP,
+					},
+					.yoffset = 55,
+				}
+			};
+			//swbuf_text(swbuf, &text_placement, "Player: %s", server_state->current_player ? server_state->current_player : "—");
+			swbuf_text(swbuf, &text_placement, "Player: %s", server_state->current_player);
+		}
+		if (server_state->current_player) {
+			{
+				const struct font_placement_t text_placement = {
+					.font_face = "Latin Modern Sans",
+					.font_size = 24,
+					.font_color = server_state->current_player ? COLOR_SILVER : COLOR_POMEGRANATE,
+					.placement = {
+						.src_anchor = {
+							.x = XPOS_CENTER,
+							.y = YPOS_CENTER,
+						},
+						.dst_anchor = {
+							.x = XPOS_CENTER,
+							.y = YPOS_TOP,
+						},
+						.yoffset = 55 + 24,
+					}
+				};
+				swbuf_text(swbuf, &text_placement, "Playtime today: %d sec", server_state->current_playtime);
+			}
+		}
+
+	} if (server_state->ui_screen == GAME_SCREEN) {
+		{
+			const struct font_placement_t placement = {
+				.font_face = "Beon",
+				.font_size = 32,
+				.font_color = COLOR_BS_RED,
+				.placement = {
+					.src_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_TOP,
+					},
+					.dst_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_TOP,
+					},
+					.yoffset = 4,
+					.xoffset = -12,
+				}
+			};
+			swbuf_text(swbuf, &placement, "Game On");
+		}
+	} if (server_state->ui_screen == FINISH_SCREEN) {
 	}
 }
 
-static void event_callback(enum ui_eventtype_t event_type, void *vevent) {
+static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *ctx) {
+	struct server_state_t *server_state = (struct server_state_t*)ctx;
+
 	if (event_type == EVENT_QUIT) {
 		exit(EXIT_SUCCESS);
 	} else if (event_type == EVENT_KEYPRESS) {
 		struct ui_event_keypress_t *event = (struct ui_event_keypress_t*)vevent;
+
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
-		jsondom_dump(event->json);
+		struct jsondom_t *status = jsondom_get_dict(event->json, "status");
+		if (status->elementtype == JD_DICT) {
+			const char *current_player = jsondom_get_dict_str(status, "current_player");
+			if (current_player) {
+				strncpy(server_state->current_player, current_player, sizeof(server_state->current_player));
+			} else {
+				server_state->current_player[0] = 0;
+			}
+			jsondom_dump(status);
+		}
 	}
 }
 
 int main(int argc, char **argv) {
+	struct server_state_t server_state = {
+		.ui_screen = MAIN_SCREEN,
+		.screen_shown_at_ts = now(),
+	};
+
 	struct display_t *display = NULL;
 	if (argc == 2) {
 		const char *filename = argv[1];
@@ -171,7 +271,7 @@ int main(int argc, char **argv) {
 			.height = 240,
 		};
 		display = display_init(&display_sdl_calltable, &init_params);
-		display_sdl_register_events(display, event_callback);
+		display_sdl_register_events(display, event_callback, &server_state);
 #endif
 	}
 	cairo_addfont("../external/beon/beon-webfont.ttf");
@@ -181,10 +281,8 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	struct server_state_t server_state = { 0 };
-
 	/* Start historian connection */
-	server_state.historian = historian_connect("../historian/unix_sock", event_callback);
+	server_state.historian = historian_connect("../historian/unix_sock", event_callback, &server_state);
 	if (!server_state.historian) {
 		fprintf(stderr, "Could not create historian connection instance.\n");
 		exit(EXIT_FAILURE);

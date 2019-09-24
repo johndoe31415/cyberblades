@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+#	pibeatsaber - Beat Saber historian application that tracks players
+#	Copyright (C) 2019-2019 Johannes Bauer
+#
+#	This file is part of pibeatsaber.
+#
+#	pibeatsaber is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	pibeatsaber is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+
+import sys
+import json
+import websockets
+import time
+import asyncio
+from FriendlyArgumentParser import FriendlyArgumentParser
+from Configuration import Configuration
+
+parser = FriendlyArgumentParser(description = "Beat Saber Historian, connects to local UNIX socket and sets the player's username.")
+parser.add_argument("-c", "--config-file", metavar = "filename", type = str, default = "configuration.json", help = "Specifies JSON config file to use. Defaults to %(default)s.")
+parser.add_argument("mockfile", metavar = "mockfile", type = str, help = "JSON mock file to write.")
+args = parser.parse_args(sys.argv[1:])
+
+config = Configuration(args.config_file)
+uri = config.subs(config["beatsaber_websocket_uri"])
+
+messages = [ ]
+
+async def connection_task():
+	try:
+		async with websockets.connect(uri) as websocket:
+			print("Connection to BeatSaber established at %s" % (uri))
+			while True:
+				msg = await websocket.recv()
+				messages.append((time.time(), msg))
+	except (OSError, ConnectionRefusedError, websockets.exceptions.ConnectionClosed) as e:
+		print("Exception", e)
+	print("done", len(messages))
+
+loop = asyncio.get_event_loop()
+try:
+	loop.run_until_complete(connection_task())
+finally:
+	t0 = messages[0][0]
+	mock_file = {
+		"meta": {
+			"t0":	t0,
+		},
+		"events": [ {
+			"ts": t - t0,
+			"msg": json.loads(msg_str),
+		} for (t, msg_str) in messages ],
+	}
+	with open(args.mockfile, "w") as f:
+		json.dump(mock_file, f)
+		f.write("\n")

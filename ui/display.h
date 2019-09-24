@@ -34,6 +34,7 @@ struct display_calltable_t;
 
 struct hmi_event_t {
 	ui_event_cb_t event_callback;
+	void *callback_ctx;
 	pthread_t event_thread;
 	bool thread_running;
 };

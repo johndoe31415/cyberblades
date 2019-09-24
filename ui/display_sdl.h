@@ -39,7 +39,7 @@ struct display_sdl_init_t {
 extern const struct display_calltable_t display_sdl_calltable;
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-void display_sdl_register_events(struct display_t *display, ui_event_cb_t event_callback);
+void display_sdl_register_events(struct display_t *display, ui_event_cb_t event_callback, void *ctx);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

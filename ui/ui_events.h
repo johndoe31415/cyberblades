@@ -52,7 +52,7 @@ struct ui_event_historian_statechg_t {
 	struct historian_t *historian;
 };
 
-typedef void (*ui_event_cb_t)(enum ui_eventtype_t event_type, void *event);
+typedef void (*ui_event_cb_t)(enum ui_eventtype_t event_type, void *event, void *ctx);
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
 /***************  AUTO GENERATED SECTION ENDS   ***************/

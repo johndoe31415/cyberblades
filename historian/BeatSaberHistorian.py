@@ -34,18 +34,25 @@ class BeatSaberHistorian():
 		self._current_player = None
 		self._current_data = None
 		self._connected_to_beatsaber = False
+		self._current_score = 0
 
 	def _subs(self, text):
 		text = text.replace("${player}", self._current_player or "unknown_player")
 		return self._config.subs(text)
 
+	def _get_status_dict(self):
+		return {
+			"connected_to_beatsaber":	self._connected_to_beatsaber,
+			"current_player":			self._current_player,
+			"in_game":					self._current_data is not None,
+			"current_score":			self._current_score,
+		}
+
 	def _local_command_status(self, query):
 		return {
 			"msgtype":	"response",
 			"success":	True,
-			"data": {
-				"current_player":		self._current_player,
-			},
+			"data": self._get_status_dict(),
 		}
 
 	def _local_command_set(self, query):
@@ -93,13 +100,11 @@ class BeatSaberHistorian():
 
 	async def _local_server_events(self, reader, writer):
 		while not writer.is_closing():
-			await asyncio.sleep(1)
 			writer.write((json.dumps({
 				"msgtype":	"event",
-				"status": {
-					"connected_to_beatsaber":	self._connected_to_beatsaber,
-				},
+				"status": self._get_status_dict(),
 			}) + "\n").encode("ascii"))
+			await asyncio.sleep(1)
 
 	async def _local_server_tasks(self, reader, writer):
 		await asyncio.gather(

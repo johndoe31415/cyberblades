@@ -84,7 +84,7 @@ static void handle_historian_connection(struct historian_t *historian) {
 				}
 #endif
 
-				historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .json = json }));
+				historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .json = json }), historian->event_callback_ctx);
 			}
 		} else if (value && !strcmp(value, "response")) {
 			/* Response recived */
@@ -119,7 +119,7 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 
 		historian->connection_state = CONNECTED_WAITING;
 		if (historian->event_callback) {
-			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }));
+			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
 		}
 
 		handle_historian_connection(historian);
@@ -128,13 +128,13 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 
 		historian->connection_state = UNCONNECTED;
 		if (historian->event_callback) {
-			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }));
+			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
 		}
 	}
 	return NULL;
 }
 
-struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb) {
+struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb, void *callback_ctx) {
 	struct historian_t *historian = calloc(sizeof(struct historian_t), 1);
 	if (!historian) {
 		perror("calloc");
@@ -144,6 +144,7 @@ struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t his
 	historian->connection_state = UNCONNECTED;
 	historian->unix_socket = unix_socket;
 	historian->event_callback = historian_event_cb;
+	historian->event_callback_ctx = callback_ctx;
 	historian->running = true;
 	if (pthread_create(&historian->connection_thread, NULL, historian_connection_thread_fnc, historian)) {
 		perror("pthread_create");

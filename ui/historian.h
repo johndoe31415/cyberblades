@@ -37,13 +37,14 @@ struct historian_t {
 	int historian_fd;
 	enum historian_state_t connection_state;
 	ui_event_cb_t event_callback;
+	void *event_callback_ctx;
 	pthread_t connection_thread;
 	pthread_t receive_thread;
 	bool running;
 };
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb);
+struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb, void *callback_ctx);
 void historian_free(struct historian_t *historian);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
