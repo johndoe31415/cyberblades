@@ -1,5 +1,5 @@
 .*.swp
 *.o
 __pycache__
-history
-lcd/test_display
+historian/history
+ui/test_display
