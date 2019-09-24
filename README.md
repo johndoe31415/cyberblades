@@ -49,5 +49,10 @@ Once my wife couldn't remember the name of BeatSaber and called it
 "CyberBlades". I love the name and we use it all the time now as an inside
 joke. So now CyberBlades is something "official" :-)
 
+## Used other work
+  - Font "Beon" by Bastien Sozeau (contact@sozoo.fr) used in accordance with
+    the SIL OPEN FONT LICENSE Version 1.1
+
 ## License
-GNU GPL-3
+GNU GPL-3 for all of my code, external dependencies under their respective
+licenses.

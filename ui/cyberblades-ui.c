@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
 		display_sdl_register_events(display, event_callback);
 #endif
 	}
-	cairo_addfont("beon/beon-webfont.ttf");
+	cairo_addfont("../external/beon/beon-webfont.ttf");
 
 	if (!display) {
 		fprintf(stderr, "Could not create display.\n");

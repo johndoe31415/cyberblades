@@ -1,0 +1,41 @@
+#!/bin/bash
+#	pibeatsaber - Beat Saber historian application that tracks players
+#	Copyright (C) 2019-2019 Johannes Bauer
+#
+#	This file is part of pibeatsaber.
+#
+#	pibeatsaber is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	pibeatsaber is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+
+BASEDIR=`readlink -f "$0"`
+BASEDIR=`dirname "$BASEDIR"`/
+cd "$BASEDIR"
+
+if [ "$1" == "" ] && [ ! -f ".install_target" ]; then
+	echo "$0 [username@hostname]"
+	echo
+	echo "e.g.: $0 pi@192.168.1.201"
+	exit 1
+fi
+
+if [ "$1" != "" ]; then
+	TARGET="$1"
+	echo "$TARGET" >.install_target
+else
+	TARGET=`cat .install_target`
+fi
+
+rsync -a --delete "$BASEDIR" "${TARGET}:cyberblades"
+ssh "${TARGET}" 'cd ~/cyberblades; git clean -dfx; cd ui; make'

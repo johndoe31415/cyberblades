@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <yajl_parse.h>
 #include "jsondom.h"
 
@@ -249,7 +250,7 @@ static void jsondom_dump_indent(const struct jsondom_t *element, unsigned int in
 	} else if (element->elementtype == JD_STRING) {
 		printf("\"%s\"", element->element.str_value);
 	} else if (element->elementtype == JD_INTEGER) {
-		printf("%ld", element->element.int_value);
+		printf("%" PRId64, element->element.int_value);
 	} else if (element->elementtype == JD_DOUBLE) {
 		printf("%f", element->element.double_value);
 	} else if (element->elementtype == JD_BOOLEAN) {

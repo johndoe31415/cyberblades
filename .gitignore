@@ -3,3 +3,4 @@
 __pycache__
 historian/history
 ui/cyberblades-ui
+.install_target
