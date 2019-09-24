@@ -101,8 +101,6 @@ static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 	}
 
 	ctx->surface = SDL_GetWindowSurface(ctx->window);
-
-
 	return true;
 }
 

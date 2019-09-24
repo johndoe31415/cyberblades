@@ -61,6 +61,45 @@ uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, un
 	return data[(y * surface->width) + x] & 0xffffff;
 }
 
+static struct placement_t swbuf_calculate_placement(const struct cairo_swbuf_t *surface, const struct anchored_placement_t *anchored_placement) {
+	struct placement_t placement;
+
+	switch (anchored_placement->xanchor) {
+		case XPOS_LEFT:
+			placement.top_left.x = 0;
+			break;
+
+		case XPOS_CENTER:
+			placement.top_left.x = (surface->width - anchored_placement->width) / 2;
+			break;
+
+		case XPOS_RIGHT:
+			placement.top_left.x = surface->width - anchored_placement->width;
+			break;
+	}
+
+	switch (anchored_placement->yanchor) {
+		case YPOS_TOP:
+			placement.top_left.y = 0;
+			break;
+
+		case YPOS_CENTER:
+			placement.top_left.y = (surface->height - anchored_placement->height) / 2;
+			break;
+
+		case YPOS_BOTTOM:
+			placement.top_left.y = surface->height - anchored_placement->height;
+			break;
+	}
+
+	placement.top_left.x += anchored_placement->xoffset;
+	placement.top_left.y += anchored_placement->yoffset;
+	placement.bottom_right.x = placement.top_left.x + anchored_placement->width;
+	placement.bottom_right.y = placement.top_left.y + anchored_placement->height;
+
+	return placement;
+}
+
 void swbuf_text(struct cairo_swbuf_t *surface, struct font_placement_t *options, const char *fmt, ...) {
 	char text[512];
 	va_list ap;
@@ -107,6 +146,15 @@ void swbuf_text(struct cairo_swbuf_t *surface, struct font_placement_t *options,
 	cairo_move_to(surface->ctx, base_x + options->xoffset, base_y + options->yoffset);
 	cairo_show_text(surface->ctx, text);
 //	printf("Printing '%s'\n", text);
+}
+
+void swbuf_rect(struct cairo_swbuf_t *surface, struct rect_placement_t *placement) {
+	struct placement_t abs_placement = swbuf_calculate_placement(surface, &placement->placement);
+
+	swbuf_set_source_rgb(surface, placement->fill_color);
+	cairo_set_line_width(surface->ctx, 0);
+	cairo_rectangle(surface->ctx, abs_placement.top_left.x, abs_placement.top_left.y, placement->placement.width, placement->placement.height);
+	cairo_fill(surface->ctx);
 }
 
 void swbuf_dump(struct cairo_swbuf_t *surface, const char *png_filename) {

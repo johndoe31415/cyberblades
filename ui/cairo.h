@@ -55,11 +55,35 @@ struct font_placement_t {
 	uint32_t font_color;
 };
 
+struct anchored_placement_t {
+	unsigned int width, height;
+	int xoffset, yoffset;
+	enum xanchor_t xanchor;
+	enum yanchor_t yanchor;
+};
+
+struct rect_placement_t {
+	struct anchored_placement_t placement;
+	uint32_t fill_color;
+};
+
+
+struct coordinate_t {
+	int x, y;
+};
+
+struct placement_t {
+	struct coordinate_t top_left;
+	struct coordinate_t bottom_right;
+};
+
+
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
 struct cairo_swbuf_t *create_swbuf(unsigned int width, unsigned int height);
 void swbuf_clear(struct cairo_swbuf_t *surface, uint32_t bgcolor);
 uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, unsigned int y);
 void swbuf_text(struct cairo_swbuf_t *surface, struct font_placement_t *options, const char *fmt, ...);
+void swbuf_rect(struct cairo_swbuf_t *surface, struct rect_placement_t *options);
 void swbuf_dump(struct cairo_swbuf_t *surface, const char *png_filename);
 void free_swbuf(struct cairo_swbuf_t *buffer);
 void cairo_addfont(const char *font_ttf_filename);
