@@ -1,4 +1,4 @@
-# pibeatsaber
+# CyberBlades
 [BeatSaber](https://beatsaber.com) is a brilliant, fantastic VR game
 ([Steam link](https://store.steampowered.com/app/620980/Beat_Saber/)). The community
 has created a number of plugins for it, my favorite of which is
@@ -10,11 +10,12 @@ game.  The reason I love their plugin so much is beacuse
 would be important to export. It is perfectly documented, easily understood,
 just a total pleasure to work with.
 
-This is where pibeatsaber comes in: It builds a historian application that
-connects to BeatSaber/HttpStatus. Via a simple UI (this is tbd) you can select
-multiple people (this is not something that is yet implemented in BeatSaber and
-it's kindof annoying, because we usually have multiple people playing and don't
-want to sign out/sign in every time).
+This is where CyberBlades comes in: It is a historian application that connects
+to BeatSaber/HttpStatus. Via a simple UI (this currently is emulated via SDL
+for development and against libcairo/framebuffer) you can select multiple
+people (this is not something that is yet implemented in BeatSaber and it's
+kindof annoying, because we usually have multiple people playing and don't want
+to sign out/sign in every time).
 
 The historian then essentially (for now) records all raw event data that
 HttpStatus provides and writes them to files.
@@ -42,6 +43,11 @@ dtoverlay=waveshare32bOC:rotate=270
 [opl-](https://github.com/opl-) -- you totally rock. Thank you so much for
 building your amazing BeatSaber plugin and making it possible for non-C# people
 to build cool stuff.
+
+## What's with the name?
+Once my wife couldn't remember the name of BeatSaber and called it
+"CyberBlades". I love the name and we use it all the time now as an inside
+joke. So now CyberBlades is something "official" :-)
 
 ## License
 GNU GPL-3
