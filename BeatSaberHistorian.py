@@ -40,7 +40,8 @@ class BeatSaberHistorian():
 
 	def _local_command_status(self, query):
 		return {
-			"success":		True,
+			"msgtype":	"response",
+			"success":	True,
 			"data": {
 				"current_player":		self._current_player,
 			},
@@ -64,13 +65,14 @@ class BeatSaberHistorian():
 			return handler(query)
 		else:
 			return {
+				"msgtype":	"response",
 				"success":	False,
 				"data":		"No such command: \"%s\"" % (cmd),
 			}
 
-	async def _local_server_connect(self, reader, writer):
+	async def _local_server_commands(self, reader, writer):
 		try:
-			while True:
+			while not writer.is_closing():
 				msg = await reader.readline()
 				if len(msg) == 0:
 					break
@@ -80,15 +82,31 @@ class BeatSaberHistorian():
 					writer.write((json.dumps(response) + "\n").encode("ascii"))
 				except json.decoder.JSONDecodeError as e:
 					writer.write((json.dumps({
+						"msgtype":	"response",
 						"success":	False,
 						"data":		"Could not decode command: %s" % (str(e)),
 					}) + "\n").encode("ascii"))
-		except (ConnectionResetError, BrokenPipeError):
-			pass
+		except (ConnectionResetError, BrokenPipeError) as e:
+			print("Local UNIX server caught exception:", e)
+			writer.close()
+
+	async def _local_server_events(self, reader, writer):
+		while not writer.is_closing():
+			await asyncio.sleep(1)
+			writer.write((json.dumps({
+				"msgtype":	"event",
+				"data":		"Some event data",
+			}) + "\n").encode("ascii"))
+
+	async def _local_server_tasks(self, reader, writer):
+		await asyncio.gather(
+			self._local_server_commands(reader, writer),
+			self._local_server_events(reader, writer),
+		)
 		writer.close()
 
 	async def _create_local_server(self):
-		await asyncio.start_unix_server(self._local_server_connect, path = self._subs(self._config["unix_socket"]))
+		await asyncio.start_unix_server(self._local_server_tasks, path = self._subs(self._config["unix_socket"]))
 
 	def _finish_song(self):
 		destination_filename = self._subs(self._config["history_files"])
