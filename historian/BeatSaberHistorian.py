@@ -33,6 +33,7 @@ class BeatSaberHistorian():
 		self._args = args
 		self._current_player = None
 		self._current_data = None
+		self._connected_to_beatsaber = False
 
 	def _subs(self, text):
 		text = text.replace("${player}", self._current_player or "unknown_player")
@@ -95,7 +96,9 @@ class BeatSaberHistorian():
 			await asyncio.sleep(1)
 			writer.write((json.dumps({
 				"msgtype":	"event",
-				"data":		"Some event data",
+				"status": {
+					"connected_to_beatsaber":	self._connected_to_beatsaber,
+				},
 			}) + "\n").encode("ascii"))
 
 	async def _local_server_tasks(self, reader, writer):
@@ -140,11 +143,13 @@ class BeatSaberHistorian():
 			try:
 				async with websockets.connect(uri) as websocket:
 					print("Connection to BeatSaber established at %s" % (uri))
+					self._connected_to_beatsaber = True
 					while True:
 						msg = await websocket.recv()
 						msg = json.loads(msg)
 						self._handle_beatsaber_event(msg)
 			except (OSError, ConnectionRefusedError, websockets.exceptions.ConnectionClosed):
+				self._connected_to_beatsaber = False
 				await asyncio.sleep(1)
 
 	async def _feed_mock_data(self):

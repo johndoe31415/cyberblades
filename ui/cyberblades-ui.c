@@ -33,7 +33,11 @@
 #endif
 #include "historian.h"
 
-static void swbuf_render(struct cairo_swbuf_t *swbuf) {
+struct server_state_t {
+	struct historian_t *historian;
+};
+
+static void swbuf_render(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
 	swbuf_clear(swbuf, COLOR_BS_DARKBLUE);
 
 	{
@@ -58,6 +62,19 @@ static void swbuf_render(struct cairo_swbuf_t *swbuf) {
 		};
 		swbuf_text(swbuf, &placement, "Blades");
 	}
+
+	{
+		struct font_placement_t placement = {
+			.font_face = "Latin Modern Sans",
+			.font_size = 16,
+			.font_color = COLOR_BS_BLUE,
+			.xanchor = XPOS_CENTER,
+			.yanchor = YPOS_TOP,
+			.yoffset = 10 + 2 * 32,
+		};
+		swbuf_text(swbuf, &placement, "%d", server_state->historian->connection_state);
+	}
+
 }
 
 static void event_callback(enum ui_eventtype_t event_type, void *vevent) {
@@ -93,21 +110,23 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
+	struct server_state_t server_state = { 0 };
+
 	/* Start historian connection */
-	struct historian_t *historian = historian_connect("../historian/unix_sock", event_callback);
-	if (!historian) {
+	server_state.historian = historian_connect("../historian/unix_sock", event_callback);
+	if (!server_state.historian) {
 		fprintf(stderr, "Could not create historian connection instance.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	struct cairo_swbuf_t *swbuf = create_swbuf(display->width, display->height);
-	for (int i = 0; i < 10; i++) {
-		swbuf_render(swbuf);
+	for (int i = 0; i < 1000; i++) {
+		swbuf_render(&server_state, swbuf);
 		blit_swbuf_on_display(swbuf, display);
 		display_commit(display);
 		sleep(1);
 	}
-	historian_free(historian);
+	historian_free(server_state.historian);
 	free_swbuf(swbuf);
 	display_free(display);
 

@@ -29,7 +29,8 @@
 enum ui_eventtype_t {
 	EVENT_QUIT,
 	EVENT_KEYPRESS,
-	EVENT_HISTORIAN_MESSAGE
+	EVENT_HISTORIAN_MESSAGE,
+	EVENT_HISTORIAN_STATECHG
 };
 
 enum key_t {
@@ -44,6 +45,11 @@ struct ui_event_keypress_t {
 
 struct ui_event_historian_msg_t {
 	struct jsondom_t* json;
+};
+
+struct historian_t;
+struct ui_event_historian_statechg_t {
+	struct historian_t *historian;
 };
 
 typedef void (*ui_event_cb_t)(enum ui_eventtype_t event_type, void *event);

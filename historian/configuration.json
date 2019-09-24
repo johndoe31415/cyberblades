@@ -1,5 +1,6 @@
 {
 	"beatsaber_websocket_uri":		"ws://sz:6557/socket",
 	"unix_socket":					"${base_dir}unix_sock",
-	"history_files":				"${base_dir}history/${player}/${datetime_utc}.json"
+	"history_files":				"${base_dir}history/${player}/${datetime_utc}.json",
+	"permanent_players":			[ "joe", "julia" ]
 }

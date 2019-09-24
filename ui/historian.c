@@ -77,6 +77,13 @@ static void handle_historian_connection(struct historian_t *historian) {
 		if (value && !strcmp(value, "event")) {
 			/* Event recived */
 			if (historian->event_callback) {
+#if 0
+				historian->connection_state = CONNECTED_WAITING;
+				if (historian->event_callback) {
+					historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }));
+				}
+#endif
+
 				historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .json = json }));
 			}
 		} else if (value && !strcmp(value, "response")) {
@@ -110,9 +117,19 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 			continue;
 		}
 
+		historian->connection_state = CONNECTED_WAITING;
+		if (historian->event_callback) {
+			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }));
+		}
+
 		handle_historian_connection(historian);
 		shutdown(historian->historian_fd, SHUT_RDWR);
 		close(historian->historian_fd);
+
+		historian->connection_state = UNCONNECTED;
+		if (historian->event_callback) {
+			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }));
+		}
 	}
 	return NULL;
 }
@@ -124,6 +141,7 @@ struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t his
 		return NULL;
 	}
 
+	historian->connection_state = UNCONNECTED;
 	historian->unix_socket = unix_socket;
 	historian->event_callback = historian_event_cb;
 	historian->running = true;

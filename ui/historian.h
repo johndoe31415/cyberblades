@@ -35,6 +35,7 @@ enum historian_state_t {
 struct historian_t {
 	const char *unix_socket;
 	int historian_fd;
+	enum historian_state_t connection_state;
 	ui_event_cb_t event_callback;
 	pthread_t connection_thread;
 	pthread_t receive_thread;
