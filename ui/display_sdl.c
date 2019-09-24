@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include "display_sdl.h"
-
+#include "ui_events.h"
 
 static void display_sdl_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t rgb) {
 	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
@@ -54,11 +54,17 @@ static void display_sdl_handle_event(struct display_t *display, SDL_Event *event
 	//struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
 	if (event->type == SDL_WINDOWEVENT) {
 		if (event->window.event == SDL_WINDOWEVENT_CLOSE) {
-			display->hmi_events.event_callback(display, EVENT_QUIT, NULL);
+			display->hmi_events.event_callback(EVENT_QUIT, NULL);
 		}
 	} else if (event->type == SDL_KEYDOWN) {
 		if (event->key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-			display->hmi_events.event_callback(display, EVENT_QUIT, NULL);
+			display->hmi_events.event_callback(EVENT_QUIT, NULL);
+		} else if (event->key.keysym.scancode == SDL_SCANCODE_UP) {
+			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_UP }));
+		} else if (event->key.keysym.scancode == SDL_SCANCODE_DOWN) {
+			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_DOWN }));
+		} else if (event->key.keysym.scancode == SDL_SCANCODE_RETURN) {
+			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_MIDDLE }));
 		}
 	} else {
 		//printf("Unhandled event type 0x%x\n", event->type);
@@ -110,7 +116,7 @@ static unsigned int display_sdl_get_ctx_size(void) {
 	return sizeof(struct display_sdl_ctx_t);
 }
 
-void display_sdl_register_events(struct display_t *display, display_event_cb_t event_callback) {
+void display_sdl_register_events(struct display_t *display, ui_event_cb_t event_callback) {
 	display->hmi_events.event_callback = event_callback;
 	display->hmi_events.thread_running = true;
 	pthread_create(&display->hmi_events.event_thread, NULL, display_sdl_eventthread_fnc, display);

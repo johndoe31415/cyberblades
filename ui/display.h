@@ -27,17 +27,13 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include "colors.h"
-
-enum display_event_t {
-	EVENT_QUIT
-};
+#include "ui_events.h"
 
 struct display_t;
 struct display_calltable_t;
-typedef void (*display_event_cb_t)(struct display_t *display, enum display_event_t event_type, void *event);
 
 struct hmi_event_t {
-	display_event_cb_t event_callback;
+	ui_event_cb_t event_callback;
 	pthread_t event_thread;
 	bool thread_running;
 };

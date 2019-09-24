@@ -76,7 +76,9 @@ static void handle_historian_connection(struct historian_t *historian) {
 		char *value = jsondom_get_dict_str(json, "msgtype");
 		if (value && !strcmp(value, "event")) {
 			/* Event recived */
-			printf("event\n");
+			if (historian->event_callback) {
+				historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .json = json }));
+			}
 		} else if (value && !strcmp(value, "response")) {
 			/* Response recived */
 		} else {
@@ -115,7 +117,7 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 	return NULL;
 }
 
-struct historian_t *historian_connect(const char *unix_socket, historian_event_cb_t historian_event_cb) {
+struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb) {
 	struct historian_t *historian = calloc(sizeof(struct historian_t), 1);
 	if (!historian) {
 		perror("calloc");

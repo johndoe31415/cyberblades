@@ -20,30 +20,35 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __HISTORIAN_H__
-#define __HISTORIAN_H__
+#ifndef __UI_EVENTS_H__
+#define __UI_EVENTS_H__
 
-#include <pthread.h>
-#include "ui_events.h"
+#include <stdint.h>
+#include "jsondom.h"
 
-enum historian_state_t {
-	UNCONNECTED,
-	CONNECTED_WAITING,
-	CONNECTED_READY,
+enum ui_eventtype_t {
+	EVENT_QUIT,
+	EVENT_KEYPRESS,
+	EVENT_HISTORIAN_MESSAGE
 };
 
-struct historian_t {
-	const char *unix_socket;
-	int historian_fd;
-	ui_event_cb_t event_callback;
-	pthread_t connection_thread;
-	pthread_t receive_thread;
-	bool running;
+enum key_t {
+	BUTTON_UP,
+	BUTTON_MIDDLE,
+	BUTTON_DOWN,
 };
+
+struct ui_event_keypress_t {
+	enum key_t key;
+};
+
+struct ui_event_historian_msg_t {
+	struct jsondom_t* json;
+};
+
+typedef void (*ui_event_cb_t)(enum ui_eventtype_t event_type, void *event);
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb);
-void historian_free(struct historian_t *historian);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

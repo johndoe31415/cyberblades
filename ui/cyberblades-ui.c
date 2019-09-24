@@ -31,6 +31,7 @@
 #ifdef BUILD_WITH_SDL
 #include "display_sdl.h"
 #endif
+#include "historian.h"
 
 static void swbuf_render(struct cairo_swbuf_t *swbuf) {
 	swbuf_clear(swbuf, COLOR_BS_DARKBLUE);
@@ -59,9 +60,14 @@ static void swbuf_render(struct cairo_swbuf_t *swbuf) {
 	}
 }
 
-static void event_callback(struct display_t *display, enum display_event_t event_type, void *event) {
+static void event_callback(enum ui_eventtype_t event_type, void *vevent) {
 	if (event_type == EVENT_QUIT) {
 		exit(EXIT_SUCCESS);
+	} else if (event_type == EVENT_KEYPRESS) {
+		struct ui_event_keypress_t *event = (struct ui_event_keypress_t*)vevent;
+	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
+		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
+		jsondom_dump(event->json);
 	}
 }
 
@@ -87,6 +93,13 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
+	/* Start historian connection */
+	struct historian_t *historian = historian_connect("../historian/unix_sock", event_callback);
+	if (!historian) {
+		fprintf(stderr, "Could not create historian connection instance.\n");
+		exit(EXIT_FAILURE);
+	}
+
 	struct cairo_swbuf_t *swbuf = create_swbuf(display->width, display->height);
 	for (int i = 0; i < 10; i++) {
 		swbuf_render(swbuf);
@@ -94,6 +107,7 @@ int main(int argc, char **argv) {
 		display_commit(display);
 		sleep(1);
 	}
+	historian_free(historian);
 	free_swbuf(swbuf);
 	display_free(display);
 
