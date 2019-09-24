@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-
+#include <string.h>
 #include "display.h"
 #include "display_fb.h"
 #include "cairo.h"
