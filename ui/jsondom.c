@@ -320,6 +320,24 @@ int64_t jsondom_get_dict_int(struct jsondom_t *element, const char *key) {
 	}
 }
 
+bool jsondom_get_dict_bool(struct jsondom_t *element, const char *key) {
+	struct jsondom_t *value = jsondom_get_dict(element, key);
+	if (value && (value->elementtype == JD_BOOLEAN)) {
+		return value->element.boolean_value;
+	} else {
+		return false;
+	}
+}
+
+struct jsondom_t* jsondom_get_dict_dict(struct jsondom_t *element, const char *key) {
+	struct jsondom_t *value = jsondom_get_dict(element, key);
+	if (value && (value->elementtype == JD_DICT)) {
+		return value;
+	} else {
+		return NULL;
+	}
+}
+
 #ifdef TEST_JSONDOM
 // gcc -Wall -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread -std=c11 -DTEST_JSONDOM jsondom.c -o jsondom -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2 `pkg-config --cflags --libs yajl` && ./jsondom
 

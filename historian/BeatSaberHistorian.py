@@ -26,6 +26,7 @@ import json
 import time
 import datetime
 import contextlib
+from ScoreKeeper import ScoreKeeper
 
 class BeatSaberHistorian():
 	def __init__(self, config, args):
@@ -34,7 +35,8 @@ class BeatSaberHistorian():
 		self._current_player = None
 		self._current_data = None
 		self._connected_to_beatsaber = False
-		self._current_score = 0
+		self._current_score = None
+		self._last_score = None
 
 	def _subs(self, text):
 		text = text.replace("${player}", self._current_player or "unknown_player")
@@ -45,7 +47,8 @@ class BeatSaberHistorian():
 			"connected_to_beatsaber":	self._connected_to_beatsaber,
 			"current_player":			self._current_player,
 			"in_game":					self._current_data is not None,
-			"current_score":			self._current_score,
+			"current_score":			self._current_score.to_dict() if (self._current_score is not None) else None,
+			"last_score":				self._current_score.to_dict() if (self._current_score is not None) else None,
 		}
 
 	def _local_command_status(self, query):
@@ -127,6 +130,7 @@ class BeatSaberHistorian():
 
 	def _handle_beatsaber_event(self, event):
 		if event["event"] == "songStart":
+			self._current_score = ScoreKeeper()
 			self._current_data = {
 				"meta": {
 					"songStartLocal":	time.time(),
@@ -138,9 +142,13 @@ class BeatSaberHistorian():
 			print("Player %s started %s - %s (%s)" % (self._current_player, event["status"]["beatmap"]["songAuthorName"], event["status"]["beatmap"]["songName"], event["status"]["beatmap"]["difficulty"]))
 		elif (self._current_data is not None) and ((event["event"] == "finished") or (event["event"] == "failed")):
 			self._current_data["events"].append(event)
+			self._last_score = self._current_score
+			self._current_score = None
 			self._finish_song()
 		elif self._current_data is not None:
 			self._current_data["events"].append(event)
+		if self._current_score is not None:
+			self._current_score.process(event)
 
 	async def _connect_beatsaber(self):
 		uri = self._config.subs(self._config["beatsaber_websocket_uri"])

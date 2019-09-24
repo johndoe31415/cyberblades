@@ -27,7 +27,7 @@ import asyncio
 from FriendlyArgumentParser import FriendlyArgumentParser
 from Configuration import Configuration
 
-parser = FriendlyArgumentParser(description = "Beat Saber Historian, connects to local UNIX socket and sets the player's username.")
+parser = FriendlyArgumentParser(description = "Beat Saber Historian, connects to a Beat Saber instance and records all messages.")
 parser.add_argument("-c", "--config-file", metavar = "filename", type = str, default = "configuration.json", help = "Specifies JSON config file to use. Defaults to %(default)s.")
 parser.add_argument("mockfile", metavar = "mockfile", type = str, help = "JSON mock file to write.")
 args = parser.parse_args(sys.argv[1:])

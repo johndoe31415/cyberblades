@@ -181,8 +181,7 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 					.yoffset = 55,
 				}
 			};
-			//swbuf_text(swbuf, &text_placement, "Player: %s", server_state->current_player ? server_state->current_player : "—");
-			swbuf_text(swbuf, &text_placement, "Player: %s", server_state->current_player);
+			swbuf_text(swbuf, &text_placement, "Player: %s", server_state->current_player[0] ? server_state->current_player : "—");
 		}
 		if (server_state->current_player) {
 			{
@@ -227,6 +226,25 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 			};
 			swbuf_text(swbuf, &placement, "Game On");
 		}
+		{
+			const struct font_placement_t text_placement = {
+				.font_face = "Latin Modern Sans",
+				.font_size = 24,
+				.font_color = server_state->current_player[0] ? COLOR_SILVER : COLOR_POMEGRANATE,
+				.placement = {
+					.src_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_CENTER,
+					},
+					.dst_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_TOP,
+					},
+					.yoffset = 55,
+				}
+			};
+			swbuf_text(swbuf, &text_placement, "%ld", server_state->current_score);
+		}
 	} if (server_state->ui_screen == FINISH_SCREEN) {
 	}
 }
@@ -241,15 +259,33 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
-		struct jsondom_t *status = jsondom_get_dict(event->json, "status");
-		if (status->elementtype == JD_DICT) {
+		struct jsondom_t *status = jsondom_get_dict_dict(event->json, "status");
+		if (status) {
 			const char *current_player = jsondom_get_dict_str(status, "current_player");
 			if (current_player) {
 				strncpy(server_state->current_player, current_player, sizeof(server_state->current_player));
 			} else {
 				server_state->current_player[0] = 0;
 			}
+
+			struct jsondom_t *current_score = jsondom_get_dict_dict(status, "current_score");
+			if (current_score) {
+				server_state->current_score = jsondom_get_dict_int(current_score, "score");
+			}
+
+			if (jsondom_get_dict_bool(status, "in_game")) {
+				server_state->ui_screen = GAME_SCREEN;
+				server_state->screen_shown_at_ts = now();
+			}
+
 			jsondom_dump(status);
+
+
+		}
+	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
+		if (server_state->historian->connection_state == UNCONNECTED) {
+			server_state->ui_screen = MAIN_SCREEN;
+			server_state->screen_shown_at_ts = now();
 		}
 	}
 }

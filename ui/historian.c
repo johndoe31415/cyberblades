@@ -77,12 +77,14 @@ static void handle_historian_connection(struct historian_t *historian) {
 		if (value && !strcmp(value, "event")) {
 			/* Event recived */
 			if (historian->event_callback) {
-#if 0
-				historian->connection_state = CONNECTED_WAITING;
-				if (historian->event_callback) {
-					historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }));
+				struct jsondom_t *status = jsondom_get_dict_dict(json, "status");
+				if (status) {
+				 	enum historian_state_t current_connection_state = jsondom_get_dict_bool(status, "connected_to_beatsaber") ? CONNECTED_READY : CONNECTED_WAITING;
+					if (current_connection_state != historian->connection_state) {
+						historian->connection_state = current_connection_state;
+						historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
+					}
 				}
-#endif
 
 				historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .json = json }), historian->event_callback_ctx);
 			}
