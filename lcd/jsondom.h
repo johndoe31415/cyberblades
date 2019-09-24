@@ -67,6 +67,7 @@ void jsondom_dump(const struct jsondom_t *element);
 void jsondom_free(struct jsondom_t *element);
 struct jsondom_t* jsondom_get_dict(struct jsondom_t *element, const char *key);
 char *jsondom_get_dict_str(struct jsondom_t *element, const char *key);
+int64_t jsondom_get_dict_int(struct jsondom_t *element, const char *key);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

@@ -310,6 +310,15 @@ char *jsondom_get_dict_str(struct jsondom_t *element, const char *key) {
 	}
 }
 
+int64_t jsondom_get_dict_int(struct jsondom_t *element, const char *key) {
+	struct jsondom_t *value = jsondom_get_dict(element, key);
+	if (value && (value->elementtype == JD_INTEGER)) {
+		return value->element.int_value;
+	} else {
+		return 0;
+	}
+}
+
 #ifdef TEST_JSONDOM
 // gcc -Wall -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread -std=c11 -DTEST_JSONDOM jsondom.c -o jsondom -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2 `pkg-config --cflags --libs yajl` && ./jsondom
 

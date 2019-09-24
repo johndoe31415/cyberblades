@@ -12,6 +12,8 @@ CFLAGS := -O3 -std=c11 -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500
 CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread
 CFLAGS += `pkg-config --cflags cairo`
 LDFLAGS := `pkg-config --libs cairo` -lfontconfig
+CFLAGS += `pkg-config --cflags yajl`
+LDFLAGS += `pkg-config --libs yajl`
 
 ifeq ($(DEVELOPMENT),1)
 CFLAGS += -DBUILD_WITH_SDL `pkg-config --cflags sdl2`
@@ -28,7 +30,9 @@ OBJS := \
 	cairo.o \
 	display.o \
 	display_fb.o \
-	cairoglue.o
+	cairoglue.o \
+	historian.o \
+	jsondom.o
 
 ifeq ($(DEVELOPMENT),1)
 OBJS +=	display_sdl.o
