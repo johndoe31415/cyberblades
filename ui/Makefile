@@ -18,6 +18,7 @@ LDFLAGS += `pkg-config --libs yajl`
 ifeq ($(DEVELOPMENT),1)
 CFLAGS += -DBUILD_WITH_SDL `pkg-config --cflags sdl2`
 LDFLAGS += `pkg-config --libs sdl2`
+#CFLAGS += -DCAIRO_DEBUG
 endif
 
 ifeq ($(DEVELOPMENT),1)

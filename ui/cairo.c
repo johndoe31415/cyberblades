@@ -153,7 +153,37 @@ static struct placement_t swbuf_calculate_placement(const struct cairo_swbuf_t *
 	placement.bottom_right.x = placement.top_left.x + obj_width;
 	placement.bottom_right.y = placement.top_left.y + obj_height;
 
-#if 0
+	/* Do we have an anchor point? */
+#if CAIRO_DEBUG
+	switch (anchored_placement->src_anchor.x) {
+		case XPOS_LEFT:
+			placement.anchor.x = placement.top_left.x;
+			break;
+
+		case XPOS_CENTER:
+			placement.anchor.x = (placement.top_left.x + placement.bottom_right.x) / 2;
+			break;
+
+		case XPOS_RIGHT:
+			placement.anchor.x = placement.bottom_right.x;
+			break;
+	}
+	switch (anchored_placement->src_anchor.y) {
+		case YPOS_TOP:
+			placement.anchor.y = placement.top_left.y;
+			break;
+
+		case YPOS_CENTER:
+			placement.anchor.y = (placement.top_left.y + placement.bottom_right.y) / 2;
+			break;
+
+		case YPOS_BOTTOM:
+			placement.anchor.y = placement.bottom_right.y;
+			break;
+	}
+#endif
+
+#if CAIRO_DEBUG
 	printf("Abs position of %d x %d object: %s/%s corner is placed on %s/%s (%+d / %+d) => %d, %d\n",
 			obj_width, obj_height,
 			yanchor_to_str(anchored_placement->src_anchor.y), xanchor_to_str(anchored_placement->src_anchor.x),
@@ -186,8 +216,9 @@ void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *pl
 	cairo_move_to(surface->ctx, abs_placement.top_left.x - extents.x_bearing, abs_placement.bottom_right.y);
 	cairo_show_text(surface->ctx, text);
 
-#if 1
-	swbuf_circle(surface, abs_placement.top_left.x, abs_placement.bottom_right.y, 4, COLOR_GREEN);
+#if CAIRO_DEBUG
+	swbuf_circle(surface, abs_placement.anchor.x, abs_placement.anchor.y, 4, COLOR_RED);
+	swbuf_circle(surface, abs_placement.top_left.x, abs_placement.bottom_right.y, 2, COLOR_GREEN);
 	swbuf_rect(surface, &(const struct rect_placement_t) {
 		.placement = {
 			.xoffset = abs_placement.top_left.x,

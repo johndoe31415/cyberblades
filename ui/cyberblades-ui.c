@@ -51,70 +51,67 @@ struct server_state_t {
 	char song_title[48];
 	char level_author[48];
 	unsigned int current_score;
+	unsigned int current_maxscore;
 	struct historian_t *historian;
 	struct isleep_t isleep;
 	bool running;
+	pthread_mutex_t shared_data_mutex;
 };
 
 static void swbuf_render(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
 	swbuf_clear(swbuf, COLOR_BS_DARKBLUE);
 	if (server_state->ui_screen == MAIN_SCREEN) {
-		{
-			const struct font_placement_t placement = {
-				.font_face = "Beon",
-				.font_size = 32,
-				.font_color = COLOR_BS_RED,
-				.placement = {
-					.src_anchor = {
-						.x = XPOS_RIGHT,
-						.y = YPOS_TOP,
-					},
-					.dst_anchor = {
-						.x = XPOS_CENTER,
-						.y = YPOS_TOP,
-					},
-					.yoffset = 4,
-					.xoffset = -12,
-				}
-			};
-			swbuf_text(swbuf, &placement, "Cyber");
-		}
-		{
-			const struct font_placement_t placement = {
-				.font_face = "Beon",
-				.font_size = 32,
-				.font_color = COLOR_BS_BLUE,
-				.placement = {
-					.src_anchor = {
-						.x = XPOS_LEFT,
-						.y = YPOS_TOP,
-					},
-					.dst_anchor = {
-						.x = XPOS_CENTER,
-						.y = YPOS_TOP,
-					},
-					.yoffset = 4,
-					.xoffset = 0,
-				}
-			};
-			swbuf_text(swbuf, &placement, "Blades");
-		}
+		const int cyberblades_offset = -5;
+		swbuf_text(swbuf, &(const struct font_placement_t) {
+			.font_face = "Beon",
+			.font_size = 32,
+			.font_color = COLOR_BS_RED,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_RIGHT,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 32,
+				.xoffset = -5 + cyberblades_offset,
+			}
+		}, "Cyber");
+		swbuf_text(swbuf, &(const struct font_placement_t) {
+			.font_face = "Beon",
+			.font_size = 32,
+			.font_color = COLOR_BS_BLUE,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_LEFT,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 32,
+				.xoffset = 5 + cyberblades_offset,
+			}
+		}, "Blades");
 
 		{
-			const struct font_placement_t text_placement = {
-				.font_face = "Latin Modern Sans",
+			struct font_placement_t text_placement = {
+				.font_face = "Roboto",
 				.font_size = 16,
-				.font_color = COLOR_BS_BLUE,
+				.font_color = COLOR_WHITE,
 				.placement = {
 					.src_anchor = {
 						.x = XPOS_CENTER,
-						.y = YPOS_CENTER,
+						.y = YPOS_BOTTOM,
 					},
 					.dst_anchor = {
 						.x = XPOS_CENTER,
 						.y = YPOS_BOTTOM,
 					},
-					.yoffset = -20,
+					.yoffset = -10,
 				}
 			};
 			const struct anchored_placement_t rect_placement = {
@@ -150,6 +147,7 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 						.width = 200,
 						.height = 25,
 					});
+					text_placement.font_color = COLOR_BLACK;
 					swbuf_text(swbuf, &text_placement, "Unconnected");
 					break;
 
@@ -167,46 +165,60 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 			}
 		}
 
-		{
-			const struct font_placement_t text_placement = {
-				.font_face = "Latin Modern Sans",
-				.font_size = 24,
-				.font_color = server_state->current_player[0] ? COLOR_SILVER : COLOR_POMEGRANATE,
+		if (server_state->current_player[0]) {
+			swbuf_text(swbuf, &(const struct font_placement_t){
+				.font_face = "Roboto",
+				.font_size = 22,
+				.font_color = COLOR_SILVER,
 				.placement = {
 					.src_anchor = {
 						.x = XPOS_CENTER,
-						.y = YPOS_CENTER,
+						.y = YPOS_BOTTOM,
 					},
 					.dst_anchor = {
 						.x = XPOS_CENTER,
 						.y = YPOS_TOP,
 					},
-					.yoffset = 55,
+					.yoffset = 65,
 				}
-			};
-			swbuf_text(swbuf, &text_placement, "Player: %s", server_state->current_player[0] ? server_state->current_player : "—");
+
+			}, "Player: %s", server_state->current_player);
+		} else {
+			swbuf_text(swbuf, &(const struct font_placement_t){
+				.font_face = "Roboto",
+				.font_size = 22,
+				.font_color = COLOR_POMEGRANATE,
+				.placement = {
+					.src_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_BOTTOM,
+					},
+					.dst_anchor = {
+						.x = XPOS_CENTER,
+						.y = YPOS_TOP,
+					},
+					.yoffset = 65,
+				}
+
+			}, "No player selected");
 		}
-		if (server_state->current_player) {
-			{
-				const struct font_placement_t text_placement = {
-					.font_face = "Latin Modern Sans",
-					.font_size = 24,
-					.font_color = server_state->current_player ? COLOR_SILVER : COLOR_POMEGRANATE,
-					.placement = {
-						.src_anchor = {
-							.x = XPOS_CENTER,
-							.y = YPOS_CENTER,
-						},
-						.dst_anchor = {
-							.x = XPOS_CENTER,
-							.y = YPOS_TOP,
-						},
-						.yoffset = 55 + 24,
-					}
-				};
-				swbuf_text(swbuf, &text_placement, "Playtime today: %d sec", server_state->current_playtime);
+		swbuf_text(swbuf, &(const struct font_placement_t){
+			.font_face = "Roboto",
+			.font_size = 22,
+			.font_color =  COLOR_SILVER,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 65 + 25,
 			}
-		}
+
+		}, "Playtime: %2d:%02d", server_state->current_playtime / 60, server_state->current_playtime % 60);
 
 	} if (server_state->ui_screen == GAME_SCREEN) {
 		{
@@ -217,43 +229,57 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 				.placement = {
 					.src_anchor = {
 						.x = XPOS_CENTER,
-						.y = YPOS_TOP,
+						.y = YPOS_BOTTOM,
 					},
 					.dst_anchor = {
 						.x = XPOS_CENTER,
 						.y = YPOS_TOP,
 					},
-					.yoffset = 4,
-					.xoffset = -12,
+					.yoffset = 32,
 				}
 			};
 			swbuf_text(swbuf, &placement, "Game On");
 		}
-		{
-			const struct font_placement_t text_placement = {
-				.font_face = "Digital Dream Fat",
-				.font_size = 24,
-				.font_color = COLOR_SUN_FLOWER,
-				.placement = {
-					.src_anchor = {
-						.x = XPOS_CENTER,
-						.y = YPOS_CENTER,
-					},
-					.dst_anchor = {
-						.x = XPOS_CENTER,
-						.y = YPOS_TOP,
-					},
-					.yoffset = 55,
-				}
-			};
-			swbuf_text(swbuf, &text_placement, "%ld", server_state->current_score);
-		}
+		swbuf_text(swbuf, &(const struct font_placement_t){
+			.font_face = "Digital Dream Fat",
+			.font_size = 24,
+			.font_color = COLOR_SUN_FLOWER,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 65,
+			}
+		}, "%ld", server_state->current_score);
+		swbuf_text(swbuf, &(const struct font_placement_t){
+			.font_face = "Digital Dream Fat",
+			.font_size = 20,
+			.font_color = COLOR_ORANGE,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 65 + 32,
+			}
+		}, "%.1f%%", server_state->current_maxscore ? 100. * server_state->current_score / server_state->current_maxscore : 0);
 	} if (server_state->ui_screen == FINISH_SCREEN) {
 	}
 }
 
 static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *ctx) {
 	struct server_state_t *server_state = (struct server_state_t*)ctx;
+
+	pthread_mutex_lock(&server_state->shared_data_mutex);
 
 	if (event_type == EVENT_QUIT) {
 		exit(EXIT_SUCCESS);
@@ -310,6 +336,7 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 			isleep_interrupt(&server_state->isleep);
 		}
 	}
+	pthread_mutex_unlock(&server_state->shared_data_mutex);
 }
 
 int main(int argc, char **argv) {
@@ -318,6 +345,7 @@ int main(int argc, char **argv) {
 		.screen_shown_at_ts = now(),
 		.isleep = ISLEEP_INITIALIZER,
 		.running = true,
+		.shared_data_mutex = PTHREAD_MUTEX_INITIALIZER,
 	};
 
 	struct display_t *display = NULL;
@@ -352,7 +380,9 @@ int main(int argc, char **argv) {
 
 	struct cairo_swbuf_t *swbuf = create_swbuf(display->width, display->height);
 	while (server_state.running) {
+		pthread_mutex_lock(&server_state.shared_data_mutex);
 		swbuf_render(&server_state, swbuf);
+		pthread_mutex_unlock(&server_state.shared_data_mutex);
 		blit_swbuf_on_display(swbuf, display);
 		display_commit(display);
 		isleep(&server_state.isleep, 1000);

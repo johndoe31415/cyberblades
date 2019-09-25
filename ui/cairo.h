@@ -34,7 +34,6 @@ struct cairo_swbuf_t {
 	unsigned int width, height;
 };
 
-
 enum xanchor_t {
 	XPOS_LEFT,
 	XPOS_CENTER,
@@ -82,6 +81,9 @@ struct coordinate_t {
 struct placement_t {
 	struct coordinate_t top_left;
 	struct coordinate_t bottom_right;
+#if CAIRO_DEBUG
+	struct coordinate_t anchor;
+#endif
 };
 
 
