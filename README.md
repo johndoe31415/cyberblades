@@ -70,7 +70,7 @@ pixel display board. Here are the steps to set it up:
   - [opl-](https://github.com/opl-) -- you totally rock. Thank you so much for
     building your amazing BeatSaber plugin and making it possible for non-C# people
     to build cool stuff.
-  - [juj](dd if=/dev/urandom of=/dev/fb0) -- you too! What a great and
+  - [juj](https://github.com/juj) -- you too! What a great and
     simple-to-use display driver for the Raspberry Pi, so incredibly well
     documented. Works like a charm, thanks!
 
