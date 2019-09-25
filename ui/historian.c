@@ -111,7 +111,7 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 		struct sockaddr_un destination = {
 		   .sun_family = AF_UNIX,
 		};
-		strncpy(destination.sun_path, historian->unix_socket, UNIX_PATH_MAX);
+		strncpy(destination.sun_path, historian->unix_socket, UNIX_PATH_MAX - 1);
 
 		if (connect(historian->historian_fd, (struct sockaddr*)&destination, sizeof(destination)) == -1) {
 			perror("connect");

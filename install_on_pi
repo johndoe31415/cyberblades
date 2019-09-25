@@ -37,5 +37,5 @@ else
 	TARGET=`cat .install_target`
 fi
 
-rsync -a --delete "$BASEDIR" "${TARGET}:cyberblades"
-ssh "${TARGET}" 'cd ~/cyberblades; git clean -dfx; cd ui; make'
+rsync -v -a --exclude "*.o" --exclude ".*.swp" --exclude "__pycache__" --exclude "/historian/history" --exclude "/historian/test_history" --exclude "/.git" "$BASEDIR" "${TARGET}:cyberblades"
+#ssh "${TARGET}" 'cd ~/cyberblades; git clean -dfx; cd ui; make'

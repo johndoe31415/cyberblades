@@ -50,9 +50,28 @@ static void display_fill_16bit(struct display_t *display, uint16_t pixel) {
 	}
 }
 
+static void display_fill_32bit(struct display_t *display, uint32_t pixel) {
+	struct display_fb_ctx_t *ctx = (struct display_fb_ctx_t*)display->drv_context;
+	if (display->bits_per_pixel != 32) {
+		fprintf(stderr, "not 32bpp screen\n");
+		return;
+	}
+	uint32_t *screen = (uint32_t*)ctx->screen;
+	for (unsigned int i = 0; i < display->width * display->height; i++) {
+		*screen = pixel;
+		screen++;
+	}
+}
+
 static void display_put_16bit(struct display_t *display, unsigned int x, unsigned int y, uint16_t pixel) {
 	struct display_fb_ctx_t *ctx = (struct display_fb_ctx_t*)display->drv_context;
 	uint16_t *screen = (uint16_t*)ctx->screen;
+	screen[(y * display->width) + x] = pixel;
+}
+
+static void display_put_32bit(struct display_t *display, unsigned int x, unsigned int y, uint32_t pixel) {
+	struct display_fb_ctx_t *ctx = (struct display_fb_ctx_t*)display->drv_context;
+	uint32_t *screen = (uint32_t*)ctx->screen;
 	screen[(y * display->width) + x] = pixel;
 }
 
@@ -65,7 +84,9 @@ static uint16_t rgb_to_16bit(uint32_t rgb) {
 }
 
 static void display_fb_put_pixel(struct display_t *display, unsigned int x, unsigned int y, uint32_t rgb) {
-	if (display->bits_per_pixel == 16) {
+	if (display->bits_per_pixel == 32) {
+		display_put_32bit(display, x, y, rgb);
+	} else if (display->bits_per_pixel == 16) {
 		uint16_t pixel = rgb_to_16bit(rgb);
 		display_put_16bit(display, x, y, pixel);
 	} else {
@@ -74,7 +95,9 @@ static void display_fb_put_pixel(struct display_t *display, unsigned int x, unsi
 }
 
 static void display_fb_fill(struct display_t *display, uint32_t rgb) {
-	if (display->bits_per_pixel == 16) {
+	if (display->bits_per_pixel == 32) {
+		display_fill_32bit(display, rgb);
+	} else if (display->bits_per_pixel == 16) {
 		uint16_t pixel = rgb_to_16bit(rgb);
 		display_fill_16bit(display, pixel);
 	} else {

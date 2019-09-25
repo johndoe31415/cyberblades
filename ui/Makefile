@@ -56,7 +56,7 @@ test: all
 ifeq ($(DEVELOPMENT),1)
 	./cyberblades-ui
 else
-	./cyberblades-ui /dev/fb1
+	./cyberblades-ui /dev/fb0
 endif
 
 .c.o:

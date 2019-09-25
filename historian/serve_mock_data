@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+#	pibeatsaber - Beat Saber historian application that tracks players
+#	Copyright (C) 2019-2019 Johannes Bauer
+#
+#	This file is part of pibeatsaber.
+#
+#	pibeatsaber is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	pibeatsaber is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+
+import sys
+import json
+import websockets
+import time
+import asyncio
+from FriendlyArgumentParser import FriendlyArgumentParser
+from Configuration import Configuration
+
+parser = FriendlyArgumentParser(description = "Beat Saber Historian, replays mock data previously recorded.")
+parser.add_argument("-c", "--config-file", metavar = "filename", type = str, default = "configuration.json", help = "Specifies JSON config file to use. Defaults to %(default)s.")
+parser.add_argument("-s", "--speed", metavar = "factor", type = float, default = 1.5, help = "Speed factor at which to replay. Defaults to %(default).1f")
+parser.add_argument("-m", "--max-delay", metavar = "seconds", type = float, default = 1, help = "Maximum delay in seconds inbetween messages. Defaults to %(default).1f.")
+parser.add_argument("-p", "--port", metavar = "port", type = int, default = 6557, help = "Port at which to listen. Defaults to %(default)d")
+parser.add_argument("-g", "--global-listen", action = "store_true", help = "Bind globally, i.e., make the server available for external connections. By default, only localhost is bound.")
+parser.add_argument("mockfile", metavar = "mockfile", type = str, help = "JSON mock file to replay.")
+args = parser.parse_args(sys.argv[1:])
+
+with open(args.mockfile) as f:
+	mockfile = json.load(f)
+
+async def serve_method(websocket, path):
+	if path == "/socket":
+		t0 = time.time()
+		last_print_ts = 0
+		for (eid, event) in enumerate(mockfile["events"], 1):
+			now = time.time()
+			rel_ts = event["ts"] / args.speed
+			occurrence = rel_ts + t0
+			delay = occurrence - now
+			if delay > 0:
+				if (args.max_delay >= 0) and (delay > args.max_delay):
+					t0 -= delay - args.max_delay
+					delay = args.max_delay
+				await asyncio.sleep(delay)
+			await websocket.send(json.dumps(event["msg"]))
+			if (now - last_print_ts) > 1:
+				print("%d / %d: %.1f%%" % (eid, len(mockfile["events"]), eid / len(mockfile["events"]) * 100))
+				last_print_ts = now
+		print("Finished.")
+		while True:
+			await asyncio.sleep(1)
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(websockets.serve(serve_method, "127.0.0.1" if (not args.global_listen) else "0.0.0.0", args.port))
+loop.run_forever()

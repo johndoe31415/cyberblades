@@ -263,7 +263,7 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 		if (status) {
 			const char *current_player = jsondom_get_dict_str(status, "current_player");
 			if (current_player) {
-				strncpy(server_state->current_player, current_player, sizeof(server_state->current_player));
+				strncpy(server_state->current_player, current_player, sizeof(server_state->current_player) - 1);
 			} else {
 				server_state->current_player[0] = 0;
 			}
