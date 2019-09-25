@@ -104,6 +104,13 @@ display_pinout[12] += " (Button Top K1)"
 display_pinout[16] += " (Button Middle K2)"
 display_pinout[18] += " (Button Low K3)"
 
+# These were taken from the DTB overlay that worked for me
+dtb_gpio_name = {
+	17:	"DTB Pin 1",
+	27:	"DTB Pin 2  / RESET",
+	22:	"DTB Pin 3 / LCD_RS",
+}
+
 #for i in range(20):
 #	pin_l = 2 * i + 1
 #	pin_r = pin_l + 1
