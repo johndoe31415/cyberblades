@@ -253,7 +253,7 @@ static void jsondom_dump_indent(const struct jsondom_t *element, unsigned int in
 			printf("\n");
 		}
 		jsondom_print_indent(indent);
-		printf("}\n");
+		printf("}");
 	} else if (element->elementtype == JD_ARRAY) {
 		printf("[\n");
 		for (unsigned int i = 0; i < element->element.array.element_cnt; i++) {
@@ -280,6 +280,7 @@ static void jsondom_dump_indent(const struct jsondom_t *element, unsigned int in
 
 void jsondom_dump(const struct jsondom_t *element) {
 	jsondom_dump_indent(element, 0, false);
+	printf("\n");
 }
 
 void jsondom_free(struct jsondom_t *element) {

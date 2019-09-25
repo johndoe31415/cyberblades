@@ -26,22 +26,26 @@ class ScoreKeeper():
 		etype = event["event"]
 		if etype == "songStart":
 			self._data = {
-				"song_author":		event["status"]["beatmap"]["songAuthorName"],
-				"song_title":		event["status"]["beatmap"]["songName"],
-				"level_author":		event["status"]["beatmap"]["levelAuthorName"],
-				"bpm":				event["status"]["beatmap"]["songBPM"],
-				"max_score":		event["status"]["beatmap"]["maxScore"],
-				"notes_cnt":		event["status"]["beatmap"]["notesCount"],
+				"meta": {
+					"song_author":		event["status"]["beatmap"]["songAuthorName"],
+					"song_title":		event["status"]["beatmap"]["songName"],
+					"level_author":		event["status"]["beatmap"]["levelAuthorName"],
+					"bpm":				event["status"]["beatmap"]["songBPM"],
+					"max_score":		event["status"]["beatmap"]["maxScore"],
+					"notes_cnt":		event["status"]["beatmap"]["notesCount"],
+				},
 			}
 		elif etype == "scoreChanged":
 			self._data.update({
-				"score":			event["status"]["performance"]["score"],
-				"max_score":		event["status"]["performance"]["currentMaxScore"],
-				"combo":			event["status"]["performance"]["combo"],
-				"max_combo":		event["status"]["performance"]["maxCombo"],
-				"passed_notes":		event["status"]["performance"]["passedNotes"],
-				"hit_notes":		event["status"]["performance"]["hitNotes"],
-				"missed_notes":		event["status"]["performance"]["missedNotes"],
+				"performance": {
+					"score":			event["status"]["performance"]["score"],
+					"max_score":		event["status"]["performance"]["currentMaxScore"],
+					"combo":			event["status"]["performance"]["combo"],
+					"max_combo":		event["status"]["performance"]["maxCombo"],
+					"passed_notes":		event["status"]["performance"]["passedNotes"],
+					"hit_notes":		event["status"]["performance"]["hitNotes"],
+					"missed_notes":		event["status"]["performance"]["missedNotes"],
+				}
 			})
 
 	def to_dict(self):

@@ -261,28 +261,33 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
-		struct jsondom_t *status = jsondom_get_dict_dict(event->json, "status");
-		if (status) {
-			const char *current_player = jsondom_get_dict_str(status, "current_player");
+		jsondom_dump(event->json);
+
+		struct jsondom_t *json_status = jsondom_get_dict_dict(event->json, "status");
+		struct jsondom_t *json_connection = jsondom_get_dict_dict(json_status, "connection");
+		if (json_connection) {
+			jsondom_dump(json_connection);
+			const char *current_player = jsondom_get_dict_str(json_connection, "current_player");
 			if (current_player) {
 				strncpy(server_state->current_player, current_player, sizeof(server_state->current_player) - 1);
 			} else {
 				server_state->current_player[0] = 0;
 			}
 
-			struct jsondom_t *current_score = jsondom_get_dict_dict(status, "current_score");
-			if (current_score) {
-				server_state->current_score = jsondom_get_dict_int(current_score, "score");
-			}
-
-			if (jsondom_get_dict_bool(status, "in_game")) {
+			if (jsondom_get_dict_bool(json_connection, "in_game")) {
 				server_state->ui_screen = GAME_SCREEN;
 				server_state->screen_shown_at_ts = now();
 			}
-
-			jsondom_dump(status);
-			isleep_interrupt(&server_state->isleep);
 		}
+
+		struct jsondom_t *json_current_game_perf = jsondom_get_dict_dict(jsondom_get_dict_dict(json_status, "current_game"), "performance");
+		if (json_current_game_perf) {
+			server_state->current_score = jsondom_get_dict_int(json_current_game_perf, "score");
+		}
+
+//		struct jsondom_t *json_current_game_meta = jsondom_get_dict_dict(jsondom_get_dict_dict(json_status, "current_game"), "meta");
+
+		isleep_interrupt(&server_state->isleep);
 	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
 		if (server_state->historian->connection_state == UNCONNECTED) {
 			server_state->ui_screen = MAIN_SCREEN;

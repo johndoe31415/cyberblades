@@ -37,6 +37,7 @@ class BeatSaberHistorian():
 		self._connected_to_beatsaber = False
 		self._current_score = None
 		self._last_score = None
+		self._score_change = asyncio.Event()
 
 	def _subs(self, text):
 		text = text.replace("${player}", self._current_player or "unknown_player")
@@ -44,11 +45,13 @@ class BeatSaberHistorian():
 
 	def _get_status_dict(self):
 		return {
-			"connected_to_beatsaber":	self._connected_to_beatsaber,
-			"current_player":			self._current_player,
-			"in_game":					self._current_data is not None,
-			"current_score":			self._current_score.to_dict() if (self._current_score is not None) else None,
-			"last_score":				self._current_score.to_dict() if (self._current_score is not None) else None,
+			"connection": {
+				"connected_to_beatsaber":	self._connected_to_beatsaber,
+				"current_player":			self._current_player,
+				"in_game":					self._current_data is not None,
+			},
+			"current_game":					self._current_score.to_dict() if (self._current_score is not None) else None,
+			"last_game":					self._last_score.to_dict() if (self._last_score is not None) else None,
 		}
 
 	def _local_command_status(self, query):
@@ -102,12 +105,14 @@ class BeatSaberHistorian():
 			writer.close()
 
 	async def _local_server_events(self, reader, writer):
+		self._score_change.set()
 		while not writer.is_closing():
+			await self._score_change.wait()
+			self._score_change.clear()
 			writer.write((json.dumps({
 				"msgtype":	"event",
 				"status": self._get_status_dict(),
 			}) + "\n").encode("ascii"))
-			await asyncio.sleep(1)
 
 	async def _local_server_tasks(self, reader, writer):
 		await asyncio.gather(
@@ -149,6 +154,7 @@ class BeatSaberHistorian():
 			self._current_data["events"].append(event)
 		if self._current_score is not None:
 			self._current_score.process(event)
+			self._score_change.set()
 
 	async def _connect_beatsaber(self):
 		uri = self._config.subs(self._config["beatsaber_websocket_uri"])
