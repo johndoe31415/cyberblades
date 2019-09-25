@@ -99,12 +99,29 @@ display_pinout = {
 #	display_pinout[11] += " (Backlight)"
 #	display_pinout[22] += " (Touch IRQ)"
 
+# These values I measured myself:
 display_pinout[11] += " (Touch IRQ)"
 display_pinout[12] += " (Button Top K1)"
 display_pinout[16] += " (Button Middle K2)"
 display_pinout[18] += " (Button Low K3)"
 
+# These are taken from http://www.lcdwiki.com/2.4inch_RPi_Display?spm=a2g0o.detail.1000023.20.2abe1d14rtxfsV&file=2.4inch_RPi_Display
+display_pinout[11] += " [Touch IRQ]"
+display_pinout[12] += " [Key1]"
+display_pinout[13] += " [RESET]"
+display_pinout[15] += " [LCD_RS]"
+display_pinout[16] += " [Key2]"
+display_pinout[18] += " [Key3]"
+display_pinout[19] += " [MOSI]"
+display_pinout[21] += " [Touch MISO]"
+display_pinout[23] += " [SCK]"
+display_pinout[24] += " [LCD CS]"
+display_pinout[26] += " [Touch CS]"
+
 # These were taken from the DTB overlay that worked for me
+# Conclusion: The order of the three
+# waveshare32b_pins / brcm,pins = <0x00000011 0x0000001b 0x00000016>;
+# inside the Device Tree Overlay is GPIO for Touch IRQ/RESET/LCD_RS
 dtb_gpio_name = {
 	17:	"DTB Pin 1",
 	27:	"DTB Pin 2  / RESET",
