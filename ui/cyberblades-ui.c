@@ -33,6 +33,7 @@
 #endif
 #include "historian.h"
 #include "tools.h"
+#include "isleep.h"
 
 enum ui_screen_t {
 	MAIN_SCREEN = 0,
@@ -51,6 +52,7 @@ struct server_state_t {
 	const char *level_author;
 	unsigned int current_score;
 	struct historian_t *historian;
+	struct isleep_t isleep;
 };
 
 static void swbuf_render(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
@@ -279,13 +281,13 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 			}
 
 			jsondom_dump(status);
-
-
+			isleep_interrupt(&server_state->isleep);
 		}
 	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
 		if (server_state->historian->connection_state == UNCONNECTED) {
 			server_state->ui_screen = MAIN_SCREEN;
 			server_state->screen_shown_at_ts = now();
+			isleep_interrupt(&server_state->isleep);
 		}
 	}
 }
@@ -294,6 +296,7 @@ int main(int argc, char **argv) {
 	struct server_state_t server_state = {
 		.ui_screen = MAIN_SCREEN,
 		.screen_shown_at_ts = now(),
+		.isleep = ISLEEP_INITIALIZER,
 	};
 
 	struct display_t *display = NULL;
@@ -329,7 +332,7 @@ int main(int argc, char **argv) {
 		swbuf_render(&server_state, swbuf);
 		blit_swbuf_on_display(swbuf, display);
 		display_commit(display);
-		sleep(1);
+		isleep(&server_state.isleep, 1000);
 	}
 	historian_free(server_state.historian);
 	free_swbuf(swbuf);

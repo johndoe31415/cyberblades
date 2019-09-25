@@ -33,7 +33,8 @@ OBJS := \
 	cairoglue.o \
 	historian.o \
 	jsondom.o \
-	tools.o
+	tools.o \
+	isleep.o
 
 ifeq ($(DEVELOPMENT),1)
 OBJS +=	display_sdl.o
