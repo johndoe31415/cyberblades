@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #	pibeatsaber - Beat Saber historian application that tracks players
 #	Copyright (C) 2019-2019 Johannes Bauer
 #
@@ -18,25 +19,16 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
-import os
+import sys
 import json
-import datetime
+from HistorianDatabase import HistorianDatabase
+from FriendlyArgumentParser import FriendlyArgumentParser
+from Configuration import Configuration
 
-class Configuration():
-	def __init__(self, configfile):
-		with open(configfile) as f:
-			self._config = json.load(f)
-		self._base_dir = os.path.dirname(os.path.realpath(__file__))
-		if not self._base_dir.endswith("/"):
-			self._base_dir += "/"
+parser = FriendlyArgumentParser(description = "Beat Saber Historian, prints latest results of recorded games.")
+parser.add_argument("-c", "--config-file", metavar = "filename", type = str, default = "configuration.json", help = "Specifies JSON config file to use. Defaults to %(default)s.")
+parser.add_argument("-v", "--verbose", action = "count", default = 0, help = "Increases verbosity. Can be specified multiple times to increase.")
+args = parser.parse_args(sys.argv[1:])
 
-	def subs(self, text):
-		text = text.replace("${base_dir}", self._base_dir)
-		text = text.replace("${datetime_utc}", datetime.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S"))
-		return text
-
-	def get(self, key):
-		return self.subs(self[key])
-
-	def __getitem__(self, key):
-		return self._config[key]
+config = Configuration(args.config_file)
+db = HistorianDatabase(config)

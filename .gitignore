@@ -2,6 +2,7 @@
 *.o
 __pycache__
 historian/history
+historian/historian.sqlite3
 ui/cyberblades-ui
 ui/cairo-fonttest
 ui/cairo-fonttest.png
