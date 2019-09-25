@@ -23,6 +23,7 @@
 #ifndef __HISTORIAN_H__
 #define __HISTORIAN_H__
 
+#include <stdio.h>
 #include <pthread.h>
 #include "ui_events.h"
 
@@ -34,7 +35,10 @@ enum historian_state_t {
 
 struct historian_t {
 	const char *unix_socket;
-	int historian_fd;
+	FILE *f_read, *f_write;
+	pthread_mutex_t f_mutex;
+	struct jsondom_t **response;
+	pthread_cond_t response_cond;
 	enum historian_state_t connection_state;
 	ui_event_cb_t event_callback;
 	void *event_callback_ctx;
@@ -45,6 +49,7 @@ struct historian_t {
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
 struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb, void *callback_ctx);
+struct jsondom_t *historian_command(struct historian_t *historian, const char *command_query);
 void historian_free(struct historian_t *historian);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 

@@ -179,7 +179,7 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 						.x = XPOS_CENTER,
 						.y = YPOS_TOP,
 					},
-					.yoffset = 65,
+					.yoffset = 65 + 25 * 0,
 				}
 
 			}, "Player: %s", server_state->current_player);
@@ -197,7 +197,7 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 						.x = XPOS_CENTER,
 						.y = YPOS_TOP,
 					},
-					.yoffset = 65,
+					.yoffset = 65 + 25 * 0,
 				}
 
 			}, "No player selected");
@@ -215,10 +215,28 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 					.x = XPOS_CENTER,
 					.y = YPOS_TOP,
 				},
-				.yoffset = 65 + 25,
+				.yoffset = 65 + 25 * 1,
 			}
 
 		}, "Playtime: %2d:%02d", server_state->current_playtime / 60, server_state->current_playtime % 60);
+
+		swbuf_text(swbuf, &(const struct font_placement_t){
+			.font_face = "Roboto",
+			.font_size = 22,
+			.font_color =  COLOR_SILVER,
+			.placement = {
+				.src_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.yoffset = 65 + 25 * 2,
+			}
+
+		}, "Scoresum: %.1f k", server_state->score_sum / 1000.);
 
 	} if (server_state->ui_screen == GAME_SCREEN) {
 		{

@@ -66,6 +66,7 @@ uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, un
 	return data[(y * surface->width) + x] & 0xffffff;
 }
 
+#ifdef CAIRO_DEBUG
 static const char *xanchor_to_str(enum xanchor_t anchor) {
 	switch (anchor) {
 		case XPOS_LEFT:		return "left";
@@ -83,6 +84,7 @@ static const char *yanchor_to_str(enum yanchor_t anchor) {
 		default:			return "?";
 	}
 }
+#endif
 
 static struct placement_t swbuf_calculate_placement(const struct cairo_swbuf_t *surface, const struct anchored_placement_t *anchored_placement, unsigned int obj_width, unsigned int obj_height) {
 	struct placement_t placement;
