@@ -3,4 +3,6 @@
 __pycache__
 historian/history
 ui/cyberblades-ui
+ui/cairo-fonttest
+ui/cairo-fonttest.png
 .install_target

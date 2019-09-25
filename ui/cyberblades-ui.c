@@ -47,12 +47,13 @@ struct server_state_t {
 	char current_player[32];
 	unsigned int current_playtime;
 	unsigned int score_sum;
-	const char *song_author;
-	const char *song_title;
-	const char *level_author;
+	char song_author[48];
+	char song_title[48];
+	char level_author[48];
 	unsigned int current_score;
 	struct historian_t *historian;
 	struct isleep_t isleep;
+	bool running;
 };
 
 static void swbuf_render(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
@@ -230,9 +231,9 @@ static void swbuf_render(const struct server_state_t *server_state, struct cairo
 		}
 		{
 			const struct font_placement_t text_placement = {
-				.font_face = "Latin Modern Sans",
+				.font_face = "Digital Dream Fat",
 				.font_size = 24,
-				.font_color = server_state->current_player[0] ? COLOR_SILVER : COLOR_POMEGRANATE,
+				.font_color = COLOR_SUN_FLOWER,
 				.placement = {
 					.src_anchor = {
 						.x = XPOS_CENTER,
@@ -261,12 +262,12 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
-		jsondom_dump(event->json);
+		//jsondom_dump(event->json);
 
 		struct jsondom_t *json_status = jsondom_get_dict_dict(event->json, "status");
 		struct jsondom_t *json_connection = jsondom_get_dict_dict(json_status, "connection");
 		if (json_connection) {
-			jsondom_dump(json_connection);
+			//jsondom_dump(json_connection);
 			const char *current_player = jsondom_get_dict_str(json_connection, "current_player");
 			if (current_player) {
 				strncpy(server_state->current_player, current_player, sizeof(server_state->current_player) - 1);
@@ -285,7 +286,21 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 			server_state->current_score = jsondom_get_dict_int(json_current_game_perf, "score");
 		}
 
-//		struct jsondom_t *json_current_game_meta = jsondom_get_dict_dict(jsondom_get_dict_dict(json_status, "current_game"), "meta");
+		struct jsondom_t *json_current_game_meta = jsondom_get_dict_dict(jsondom_get_dict_dict(json_status, "current_game"), "meta");
+		if (json_current_game_meta) {
+			const char *song_author = jsondom_get_dict_str(json_current_game_meta, "song_author");
+			if (song_author) {
+				strncpy(server_state->song_author, song_author, sizeof(server_state->song_author) - 1);
+			}
+			const char *song_title = jsondom_get_dict_str(json_current_game_meta, "song_title");
+			if (song_title) {
+				strncpy(server_state->song_title, song_title, sizeof(server_state->song_title) - 1);
+			}
+			const char *level_author = jsondom_get_dict_str(json_current_game_meta, "level_author");
+			if (level_author) {
+				strncpy(server_state->level_author, level_author, sizeof(server_state->level_author) - 1);
+			}
+		}
 
 		isleep_interrupt(&server_state->isleep);
 	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
@@ -302,6 +317,7 @@ int main(int argc, char **argv) {
 		.ui_screen = MAIN_SCREEN,
 		.screen_shown_at_ts = now(),
 		.isleep = ISLEEP_INITIALIZER,
+		.running = true,
 	};
 
 	struct display_t *display = NULL;
@@ -319,6 +335,8 @@ int main(int argc, char **argv) {
 #endif
 	}
 	cairo_addfont("../external/beon/beon-webfont.ttf");
+	cairo_addfont("../external/digital-7.mono.ttf");
+	cairo_addfont("../external/digital-dream.fat.ttf");
 
 	if (!display) {
 		fprintf(stderr, "Could not create display.\n");
@@ -333,7 +351,7 @@ int main(int argc, char **argv) {
 	}
 
 	struct cairo_swbuf_t *swbuf = create_swbuf(display->width, display->height);
-	for (int i = 0; i < 1000; i++) {
+	while (server_state.running) {
 		swbuf_render(&server_state, swbuf);
 		blit_swbuf_on_display(swbuf, display);
 		display_commit(display);

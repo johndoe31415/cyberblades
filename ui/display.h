@@ -54,6 +54,7 @@ struct display_calltable_t {
 	void (*fill)(struct display_t *display, uint32_t color);
 	void (*put_pixel)(struct display_t *display, unsigned int x, unsigned int y, uint32_t color);
 	void (*commit)(struct display_t *display);
+	bool (*blit_buffer)(struct display_t *display, const uint32_t *source, unsigned int width, unsigned int height);
 	unsigned int (*get_ctx_size)(void);
 };
 

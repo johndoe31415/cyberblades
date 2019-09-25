@@ -25,7 +25,7 @@ ifeq ($(DEVELOPMENT),1)
 TEST_FLAGS +=
 endif
 
-SPECIFIC_OBJS := cyberblades-ui.o
+SPECIFIC_OBJS := cyberblades-ui.o cairo-fonttest.o
 OBJS := \
 	cairo.o \
 	display.o \
@@ -40,11 +40,14 @@ ifeq ($(DEVELOPMENT),1)
 OBJS +=	display_sdl.o
 endif
 
-BINARIES := cyberblades-ui
+BINARIES := cyberblades-ui cairo-fonttest
 
-all: $(BINARIES)
+all: cyberblades-ui 
 
 cyberblades-ui: cyberblades-ui.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+cairo-fonttest: cairo-fonttest.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:

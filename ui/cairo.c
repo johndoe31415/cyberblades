@@ -57,8 +57,12 @@ void swbuf_clear(struct cairo_swbuf_t *surface, uint32_t bgcolor) {
 	cairo_fill(surface->ctx);
 }
 
+const uint32_t* swbuf_get_pixel_data(const struct cairo_swbuf_t *surface) {
+	return (const uint32_t*)cairo_image_surface_get_data(surface->surface);
+}
+
 uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, unsigned int y) {
-	uint32_t *data = (uint32_t*)cairo_image_surface_get_data(surface->surface);
+	const uint32_t *data = swbuf_get_pixel_data(surface);
 	return data[(y * surface->width) + x] & 0xffffff;
 }
 
@@ -149,6 +153,7 @@ static struct placement_t swbuf_calculate_placement(const struct cairo_swbuf_t *
 	placement.bottom_right.x = placement.top_left.x + obj_width;
 	placement.bottom_right.y = placement.top_left.y + obj_height;
 
+#if 0
 	printf("Abs position of %d x %d object: %s/%s corner is placed on %s/%s (%+d / %+d) => %d, %d\n",
 			obj_width, obj_height,
 			yanchor_to_str(anchored_placement->src_anchor.y), xanchor_to_str(anchored_placement->src_anchor.x),
@@ -156,6 +161,7 @@ static struct placement_t swbuf_calculate_placement(const struct cairo_swbuf_t *
 			anchored_placement->xoffset, anchored_placement->yoffset,
 			placement.top_left.x, placement.top_left.y
 	);
+#endif
 
 	return placement;
 }
@@ -168,7 +174,7 @@ void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *pl
 	va_end(ap);
 
 	cairo_text_extents_t extents;
-	cairo_select_font_face(surface->ctx, placement->font_face, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+	cairo_select_font_face(surface->ctx, placement->font_face, CAIRO_FONT_SLANT_NORMAL, placement->font_bold ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_set_font_size(surface->ctx, placement->font_size);
 	cairo_text_extents(surface->ctx, text, &extents);
 
@@ -180,15 +186,16 @@ void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *pl
 	cairo_move_to(surface->ctx, abs_placement.top_left.x - extents.x_bearing, abs_placement.bottom_right.y);
 	cairo_show_text(surface->ctx, text);
 
-#if 0
+#if 1
+	swbuf_circle(surface, abs_placement.top_left.x, abs_placement.bottom_right.y, 4, COLOR_GREEN);
 	swbuf_rect(surface, &(const struct rect_placement_t) {
 		.placement = {
-			.xoffset = abs_placement.top_left.x - extents.x_bearing,
+			.xoffset = abs_placement.top_left.x,
 			.yoffset = abs_placement.top_left.y,
 		},
 		.width = extents.width,
 		.height = font_extents.ascent,
-		.color = COLOR_WHITE,
+		.color = COLOR_GREEN,
 	});
 #endif
 }
@@ -218,6 +225,13 @@ void swbuf_rect(struct cairo_swbuf_t *surface, const struct rect_placement_t *pl
 		cairo_set_line_width(surface->ctx, 1);
 		cairo_stroke(surface->ctx);
 	}
+}
+
+void swbuf_circle(struct cairo_swbuf_t *surface, unsigned int x, unsigned int y, unsigned int radius, uint32_t color) {
+	swbuf_set_source_rgb(surface, color);
+	cairo_move_to(surface->ctx, x + radius, y);
+	cairo_arc(surface->ctx, x, y, radius, 0, 2 * M_PI);
+	cairo_fill(surface->ctx);
 }
 
 void swbuf_dump(struct cairo_swbuf_t *surface, const char *png_filename) {

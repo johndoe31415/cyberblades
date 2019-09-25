@@ -23,6 +23,13 @@
 #include "cairoglue.h"
 
 void blit_swbuf_on_display(struct cairo_swbuf_t *swbuf, struct display_t *target) {
+	/* Try to fast blit first */
+	if ((target->calltable->blit_buffer) && target->calltable->blit_buffer(target, swbuf_get_pixel_data(swbuf), swbuf->width, swbuf->height)) {
+		/* Success! */
+		return;
+	}
+
+	/* Else fallback to slow per-pixel copies */
 	for (int y = 0; y < swbuf->height; y++) {
 		for (int x = 0; x < swbuf->width; x++) {
 			uint32_t rgb = swbuf_get_pixel(swbuf, x, y);

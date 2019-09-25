@@ -64,6 +64,7 @@ struct font_placement_t {
 	const char *font_face;
 	unsigned int font_size;
 	uint32_t font_color;
+	bool font_bold;
 };
 
 struct rect_placement_t {
@@ -87,9 +88,11 @@ struct placement_t {
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
 struct cairo_swbuf_t *create_swbuf(unsigned int width, unsigned int height);
 void swbuf_clear(struct cairo_swbuf_t *surface, uint32_t bgcolor);
+const uint32_t* swbuf_get_pixel_data(const struct cairo_swbuf_t *surface);
 uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, unsigned int y);
-void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *options, const char *fmt, ...);
+void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *placement, const char *fmt, ...);
 void swbuf_rect(struct cairo_swbuf_t *surface, const struct rect_placement_t *placement);
+void swbuf_circle(struct cairo_swbuf_t *surface, unsigned int x, unsigned int y, unsigned int radius, uint32_t color);
 void swbuf_dump(struct cairo_swbuf_t *surface, const char *png_filename);
 void free_swbuf(struct cairo_swbuf_t *buffer);
 void cairo_addfont(const char *font_ttf_filename);
