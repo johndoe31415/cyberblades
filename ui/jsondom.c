@@ -227,26 +227,44 @@ struct jsondom_t *jsondom_parse(const char *json_text) {
 	return parsing_ctx.root;
 }
 
-static void jsondom_dump_indent(const struct jsondom_t *element, unsigned int indent) {
+static void jsondom_print_indent(unsigned int indent) {
+	for (int i = 0; i < indent; i++) {
+		printf("    ");
+	}
+}
+
+static void jsondom_dump_indent(const struct jsondom_t *element, unsigned int indent, bool skip_initial) {
+	if (!skip_initial) {
+		jsondom_print_indent(indent);
+	}
 	if (!element) {
-		printf("[!]");
+		printf("<null>");
 	} else if (element->elementtype == JD_NULLVAL) {
 		printf("null");
 	} else if (element->elementtype == JD_DICT) {
 		printf("{\n");
 		for (unsigned int i = 0; i < element->element.dict.element_cnt; i++) {
-			printf("   \"%s\": ", element->element.dict.keys[i]);
-			jsondom_dump_indent(element->element.dict.elements[i], indent + 1);
-			printf(",\n");
+			jsondom_print_indent(indent + 1);
+			printf("\"%s\": ", element->element.dict.keys[i]);
+			jsondom_dump_indent(element->element.dict.elements[i], indent + 1, true);
+			if (i < element->element.dict.element_cnt - 1) {
+				printf(",");
+			}
+			printf("\n");
 		}
+		jsondom_print_indent(indent);
 		printf("}\n");
 	} else if (element->elementtype == JD_ARRAY) {
 		printf("[\n");
 		for (unsigned int i = 0; i < element->element.array.element_cnt; i++) {
-			jsondom_dump_indent(element->element.array.elements[i], indent + 1);
-			printf(",\n");
+			jsondom_dump_indent(element->element.array.elements[i], indent + 1, false);
+			if (i < element->element.array.element_cnt - 1) {
+				printf(",");
+			}
+			printf("\n");
 		}
-		printf("]\n");
+		jsondom_print_indent(indent);
+		printf("]");
 	} else if (element->elementtype == JD_STRING) {
 		printf("\"%s\"", element->element.str_value);
 	} else if (element->elementtype == JD_INTEGER) {
@@ -256,12 +274,12 @@ static void jsondom_dump_indent(const struct jsondom_t *element, unsigned int in
 	} else if (element->elementtype == JD_BOOLEAN) {
 		printf("%s", element->element.boolean_value ? "true" : "false");
 	} else {
-		printf("???");
+		printf("<invalid>");
 	}
 }
 
 void jsondom_dump(const struct jsondom_t *element) {
-	jsondom_dump_indent(element, 0);
+	jsondom_dump_indent(element, 0, false);
 }
 
 void jsondom_free(struct jsondom_t *element) {
