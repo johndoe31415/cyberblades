@@ -34,6 +34,7 @@
 #include "historian.h"
 #include "tools.h"
 #include "isleep.h"
+#include "signals.h"
 
 enum ui_screen_t {
 	MAIN_SCREEN = 0,
@@ -380,6 +381,8 @@ int main(int argc, char **argv) {
 		display_sdl_register_events(display, event_callback, &server_state);
 #endif
 	}
+	register_signal_handler(event_callback, &server_state);
+
 	cairo_addfont("../external/beon/beon-webfont.ttf");
 	cairo_addfont("../external/digital-7.mono.ttf");
 	cairo_addfont("../external/digital-dream.fat.ttf");

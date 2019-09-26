@@ -7,6 +7,8 @@ DEVELOPMENT := 0
 else
 DEVELOPMENT := 1
 endif
+BUILD_WITH_SDL := 1
+
 
 CFLAGS := -O3 -std=c11 -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500
 CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread
@@ -15,7 +17,7 @@ LDFLAGS := `pkg-config --libs cairo` -lfontconfig
 CFLAGS += `pkg-config --cflags yajl`
 LDFLAGS += `pkg-config --libs yajl`
 
-ifeq ($(DEVELOPMENT),1)
+ifeq ($(BUILD_WITH_SDL),1)
 CFLAGS += -DBUILD_WITH_SDL `pkg-config --cflags sdl2`
 LDFLAGS += `pkg-config --libs sdl2`
 #CFLAGS += -DCAIRO_DEBUG
@@ -35,9 +37,10 @@ OBJS := \
 	historian.o \
 	jsondom.o \
 	tools.o \
-	isleep.o
+	isleep.o \
+	signals.o
 
-ifeq ($(DEVELOPMENT),1)
+ifeq ($(BUILD_WITH_SDL),1)
 OBJS +=	display_sdl.o
 endif
 
