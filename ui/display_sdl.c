@@ -115,6 +115,11 @@ static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 		return false;
 	}
 
+#ifndef DEVELOPMENT
+	/* Disable mouse cursor if not developing */
+	SDL_ShowCursor(SDL_DISABLE);
+#endif
+
 	ctx->surface = SDL_GetWindowSurface(ctx->window);
 	return true;
 }
