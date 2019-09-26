@@ -27,23 +27,61 @@
 #include <pthread.h>
 #include "isleep.h"
 
+#define MAX_TEXT_WIDTH		48
+
 enum ui_screen_t {
 	MAIN_SCREEN = 0,
 	GAME_SCREEN = 1,
 	FINISH_SCREEN = 2,
 };
 
+enum difficulty_level_t {
+	EASY = 0,
+	NORMAL = 1,
+	HARD = 2,
+	EXPERT = 3,
+	EXPERTPLUS = 4,
+};
+
+struct song_metadata_t {
+	char song_author[MAX_TEXT_WIDTH];
+	char song_title[MAX_TEXT_WIDTH];
+	char level_author[MAX_TEXT_WIDTH];
+	enum difficulty_level_t difficulty;
+};
+
+struct performance_info_t {
+	unsigned int score;
+	unsigned int max_score;
+	unsigned int combo;
+	unsigned int max_combo;
+	unsigned int hit_notes;
+	unsigned int passed_notes;
+	unsigned int missed_notes;
+	char rank[4];
+};
+
+struct song_info_t {
+	struct song_metadata_t meta;
+	struct performance_info_t performance;
+};
+
+struct player_info_t {
+	char name[MAX_TEXT_WIDTH];
+	unsigned int playtime_today_secs;
+	unsigned int total_score_today;
+};
+
 struct server_state_t {
 	enum ui_screen_t ui_screen;
 	double screen_shown_at_ts;
-	char current_player[32];
-	unsigned int current_playtime;
-	unsigned int score_sum;
-	char song_author[48];
-	char song_title[48];
-	char level_author[48];
-	unsigned int current_score;
-	unsigned int current_maxscore;
+
+	struct player_info_t player;
+	struct song_info_t current_song;
+
+	struct player_info_t last_player;
+	struct song_info_t last_song;
+
 	struct historian_t *historian;
 	struct isleep_t isleep;
 	bool running;

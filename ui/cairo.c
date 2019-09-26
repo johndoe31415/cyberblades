@@ -198,7 +198,7 @@ static struct placement_t swbuf_calculate_placement(const struct cairo_swbuf_t *
 	return placement;
 }
 
-void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *placement, const char *fmt, ...) {
+unsigned int swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *placement, const char *fmt, ...) {
 	char text[512];
 	va_list ap;
 	va_start(ap, fmt);
@@ -214,18 +214,20 @@ void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *pl
 	cairo_font_extents(surface->ctx, &font_extents);
 
 	unsigned int assumed_width = extents.width;
-	if (placement->width_rounding) {
-		assumed_width = (assumed_width + placement->width_rounding - 1) / placement->width_rounding * placement->width_rounding;
+	if (placement->last_width) {
+		int diff = (int)assumed_width - (int)placement->last_width;
+		if (diff < 0) {
+			diff = -diff;
+		}
+		if (diff < placement->max_width_deviation) {
+			assumed_width = placement->last_width;
+		}
 	}
 
 	struct placement_t abs_placement = swbuf_calculate_placement(surface, &placement->placement, assumed_width, font_extents.ascent);
 	swbuf_set_source_rgb(surface, placement->font_color);
 	cairo_move_to(surface->ctx, abs_placement.top_left.x - extents.x_bearing, abs_placement.bottom_right.y);
 	cairo_show_text(surface->ctx, text);
-
-	if (placement->font_size == 96) {
-		fprintf(stderr, "%f\n", extents.width);
-	}
 
 #if CAIRO_DEBUG
 	swbuf_circle(surface, abs_placement.anchor.x, abs_placement.anchor.y, 4, COLOR_RED);
@@ -240,6 +242,7 @@ void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *pl
 		.color = COLOR_GREEN,
 	});
 #endif
+	return assumed_width;
 }
 
 void swbuf_rect(struct cairo_swbuf_t *surface, const struct rect_placement_t *placement) {

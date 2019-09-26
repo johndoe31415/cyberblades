@@ -121,10 +121,10 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 		}
 	}, "Blades");
 
-	if (server_state->current_player[0]) {
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_SILVER), "Current player: %s", server_state->current_player);
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Playtime: %2d:%02d", server_state->current_playtime / 60, server_state->current_playtime % 60);
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_SILVER), "Scoresum: %.1f k", server_state->score_sum / 1000.);
+	if (server_state->player.name[0]) {
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_SILVER), "Current player: %s", server_state->player.name);
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Playtime: %2d:%02d", server_state->player.playtime_today_secs / 60, server_state->player.playtime_today_secs % 60);
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_SILVER), "Scoresum: %.1f k", server_state->player.total_score_today / 1000.);
 	} else {
 		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_POMEGRANATE), "No player selected");
 	}
@@ -133,12 +133,15 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 }
 
 static void swbuf_render_game_screen(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
+	static unsigned int last_score_width = 0;
 	swbuf_render_heading(swbuf, "Game On");
-	swbuf_text(swbuf, &(const struct font_placement_t){
-		.font_face = "Digital Dream Fat",
+	last_score_width = swbuf_text(swbuf, &(const struct font_placement_t){
+//		.font_face = "Digital Dream Fat",
+		.font_face = "Oblivious Font",
 		.font_size = 96,
 		.font_color = COLOR_SUN_FLOWER,
-		.width_rounding = 20,
+		.last_width = last_score_width,
+		.max_width_deviation = 10,
 		.placement = {
 			.src_anchor = {
 				.x = XPOS_CENTER,
@@ -150,9 +153,9 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 			},
 			.yoffset = 200 + 96,
 		}
-	}, "%ld", server_state->current_score);
+	}, "%ld", server_state->current_song.performance.score);
 	swbuf_text(swbuf, &(const struct font_placement_t){
-		.font_face = "Digital Dream Fat",
+		.font_face = "Oblivious Font",
 		.font_size = 64,
 		.font_color = COLOR_ORANGE,
 		.placement = {
@@ -164,9 +167,10 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 				.x = XPOS_CENTER,
 				.y = YPOS_TOP,
 			},
+			.xoffset = 10,
 			.yoffset = 200 + 96 + 96,
 		}
-	}, "%.1f%%", server_state->current_maxscore ? 100. * server_state->current_score / server_state->current_maxscore : 0);
+	}, "%.1f%%", server_state->current_song.performance.max_score ? 100. * server_state->current_song.performance.score / server_state->current_song.performance.max_score : 0);
 }
 
 void swbuf_render_full_hd(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {

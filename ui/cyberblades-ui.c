@@ -38,6 +38,41 @@
 #include "cyberblades-ui.h"
 #include "renderer_fullhd.h"
 
+static void parse_game_info(struct song_info_t *song, struct jsondom_t *song_json) {
+	struct jsondom_t *json_current_game_perf = jsondom_get_dict_dict(song_json, "performance");
+	if (json_current_game_perf) {
+		song->performance.score = jsondom_get_dict_int(json_current_game_perf, "score");
+		song->performance.max_score = jsondom_get_dict_int(json_current_game_perf, "max_score");
+		song->performance.combo = jsondom_get_dict_int(json_current_game_perf, "combo");
+		song->performance.max_combo = jsondom_get_dict_int(json_current_game_perf, "max_combo");
+		song->performance.hit_notes = jsondom_get_dict_int(json_current_game_perf, "hit_notes");
+		song->performance.passed_notes = jsondom_get_dict_int(json_current_game_perf, "passed_notes");
+		song->performance.missed_notes = jsondom_get_dict_int(json_current_game_perf, "missed_notes");
+		const char *rank = jsondom_get_dict_str(json_current_game_perf, "rank");
+		if (rank) {
+			strncpy(song->performance.rank, rank, sizeof(song->performance.rank) - 1);
+		} else {
+			song->performance.rank[0] = 0;
+		}
+	}
+
+	struct jsondom_t *json_current_game_meta = jsondom_get_dict_dict(song_json, "meta");
+	if (json_current_game_meta) {
+		const char *song_author = jsondom_get_dict_str(json_current_game_meta, "song_author");
+		if (song_author) {
+			strncpy(song->meta.song_author, song_author, sizeof(song->meta.song_author) - 1);
+		}
+		const char *song_title = jsondom_get_dict_str(json_current_game_meta, "song_title");
+		if (song_title) {
+			strncpy(song->meta.song_title, song_title, sizeof(song->meta.song_title) - 1);
+		}
+		const char *level_author = jsondom_get_dict_str(json_current_game_meta, "level_author");
+		if (level_author) {
+			strncpy(song->meta.level_author, level_author, sizeof(song->meta.level_author) - 1);
+		}
+	}
+}
+
 static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *ctx) {
 	struct server_state_t *server_state = (struct server_state_t*)ctx;
 
@@ -58,9 +93,9 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 			//jsondom_dump(json_connection);
 			const char *current_player = jsondom_get_dict_str(json_connection, "current_player");
 			if (current_player) {
-				strncpy(server_state->current_player, current_player, sizeof(server_state->current_player) - 1);
+				strncpy(server_state->player.name, current_player, sizeof(server_state->player.name) - 1);
 			} else {
-				server_state->current_player[0] = 0;
+				server_state->player.name[0] = 0;
 			}
 
 			if (jsondom_get_dict_bool(json_connection, "in_game")) {
@@ -69,26 +104,8 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 			}
 		}
 
-		struct jsondom_t *json_current_game_perf = jsondom_get_dict_dict(jsondom_get_dict_dict(json_status, "current_game"), "performance");
-		if (json_current_game_perf) {
-			server_state->current_score = jsondom_get_dict_int(json_current_game_perf, "score");
-		}
+		parse_game_info(&server_state->current_song, jsondom_get_dict_dict(json_status, "current_game"));
 
-		struct jsondom_t *json_current_game_meta = jsondom_get_dict_dict(jsondom_get_dict_dict(json_status, "current_game"), "meta");
-		if (json_current_game_meta) {
-			const char *song_author = jsondom_get_dict_str(json_current_game_meta, "song_author");
-			if (song_author) {
-				strncpy(server_state->song_author, song_author, sizeof(server_state->song_author) - 1);
-			}
-			const char *song_title = jsondom_get_dict_str(json_current_game_meta, "song_title");
-			if (song_title) {
-				strncpy(server_state->song_title, song_title, sizeof(server_state->song_title) - 1);
-			}
-			const char *level_author = jsondom_get_dict_str(json_current_game_meta, "level_author");
-			if (level_author) {
-				strncpy(server_state->level_author, level_author, sizeof(server_state->level_author) - 1);
-			}
-		}
 
 		isleep_interrupt(&server_state->isleep);
 	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
@@ -129,6 +146,7 @@ int main(int argc, char **argv) {
 	cairo_addfont("../external/beon/beon-webfont.ttf");
 	cairo_addfont("../external/digital-7.mono.ttf");
 	cairo_addfont("../external/digital-dream.fat.ttf");
+	cairo_addfont("../external/oblivious/OBLIVIOUSFONT.TTF");
 
 	if (!display) {
 		fprintf(stderr, "Could not create display.\n");
