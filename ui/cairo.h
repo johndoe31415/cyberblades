@@ -64,6 +64,7 @@ struct font_placement_t {
 	unsigned int font_size;
 	uint32_t font_color;
 	bool font_bold;
+	unsigned int width_rounding;
 };
 
 struct rect_placement_t {

@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include "ui_events.h"
+#include "signals.h"
 
 static ui_event_cb_t ui_event_callback;
 static void *ui_callback_ctx;

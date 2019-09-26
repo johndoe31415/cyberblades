@@ -1,4 +1,4 @@
-.PHONY: test connect
+.PHONY: test testfb
 
 ARCH := $(shell uname -p)
 ifeq ($(ARCH),unknown)
@@ -8,7 +8,6 @@ else
 DEVELOPMENT := 1
 endif
 BUILD_WITH_SDL := 1
-
 
 CFLAGS := -O3 -std=c11 -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500
 CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread
@@ -25,6 +24,7 @@ endif
 
 ifeq ($(DEVELOPMENT),1)
 #CFLAGS += -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2
+CFLAGS += -DDEVELOPMENT
 TEST_FLAGS +=
 endif
 
@@ -38,7 +38,8 @@ OBJS := \
 	jsondom.o \
 	tools.o \
 	isleep.o \
-	signals.o
+	signals.o \
+	renderer_fullhd.o
 
 ifeq ($(BUILD_WITH_SDL),1)
 OBJS +=	display_sdl.o
@@ -61,11 +62,10 @@ clean:
 	rm -f out.png output.png
 
 test: all
-ifeq ($(DEVELOPMENT),1)
 	./cyberblades-ui
-else
+
+testfb:
 	./cyberblades-ui /dev/fb0
-endif
 
 .c.o:
 	$(CC) $(CFLAGS) -c -o $@ $<

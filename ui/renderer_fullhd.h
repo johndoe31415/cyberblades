@@ -20,17 +20,14 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __TOOLS_H__
-#define __TOOLS_H__
+#ifndef __RENDERER_FULLHD_H__
+#define __RENDERER_FULLHD_H__
 
-#include <stdint.h>
-#include <sys/time.h>
+#include "cyberblades-ui.h"
+#include "cairo.h"
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-double now(void);
-void add_timespec_offset(struct timespec *timespec, int32_t offset_milliseconds);
-void get_timespec_now(struct timespec *timespec);
-void get_abs_timespec_offset(struct timespec *timespec, int32_t offset_milliseconds);
+void swbuf_render_full_hd(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

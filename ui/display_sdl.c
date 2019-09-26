@@ -71,6 +71,15 @@ static void display_sdl_handle_event(struct display_t *display, SDL_Event *event
 			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_DOWN }), display->hmi_events.callback_ctx);
 		} else if (event->key.keysym.scancode == SDL_SCANCODE_RETURN) {
 			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_MIDDLE }), display->hmi_events.callback_ctx);
+#ifdef DEVELOPMENT
+		} else if (event->key.keysym.scancode == SDL_SCANCODE_F12) {
+			/* Toggle fullscreen mode */
+			static bool is_fullscreen = false;
+			struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
+			SDL_SetWindowFullscreen(ctx->window, is_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+			//SDL_SetWindowFullscreen(ctx->window, is_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
+			is_fullscreen = !is_fullscreen;
+#endif
 		}
 	} else {
 		//printf("Unhandled event type 0x%x\n", event->type);
@@ -120,6 +129,8 @@ static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 	SDL_ShowCursor(SDL_DISABLE);
 #endif
 
+//	SDL_SetWindowFullscreen(ctx->window, SDL_WINDOW_FULLSCREEN);
+
 	ctx->surface = SDL_GetWindowSurface(ctx->window);
 	return true;
 }
@@ -150,6 +161,7 @@ static bool display_sdl_blit_buffer(struct display_t *display, uint32_t *source,
 	SDL_Texture *texture = SDL_CreateTextureFromSurface(ctx->renderer, surface);
 	if (surface) {
 		SDL_RenderCopy(ctx->renderer, texture, NULL, NULL);
+		SDL_DestroyTexture(texture);
 		SDL_FreeSurface(surface);
 		return true;
 	} else {

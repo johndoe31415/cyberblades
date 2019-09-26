@@ -20,17 +20,38 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __TOOLS_H__
-#define __TOOLS_H__
+#ifndef __CYBERBLADES_UI_H__
+#define __CYBERBLADES_UI_H__
 
-#include <stdint.h>
-#include <sys/time.h>
+#include <stdbool.h>
+#include <pthread.h>
+#include "isleep.h"
+
+enum ui_screen_t {
+	MAIN_SCREEN = 0,
+	GAME_SCREEN = 1,
+	FINISH_SCREEN = 2,
+};
+
+struct server_state_t {
+	enum ui_screen_t ui_screen;
+	double screen_shown_at_ts;
+	char current_player[32];
+	unsigned int current_playtime;
+	unsigned int score_sum;
+	char song_author[48];
+	char song_title[48];
+	char level_author[48];
+	unsigned int current_score;
+	unsigned int current_maxscore;
+	struct historian_t *historian;
+	struct isleep_t isleep;
+	bool running;
+	pthread_mutex_t shared_data_mutex;
+	unsigned int frameno;
+};
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-double now(void);
-void add_timespec_offset(struct timespec *timespec, int32_t offset_milliseconds);
-void get_timespec_now(struct timespec *timespec);
-void get_abs_timespec_offset(struct timespec *timespec, int32_t offset_milliseconds);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

@@ -213,10 +213,19 @@ void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *pl
 	cairo_font_extents_t font_extents;
 	cairo_font_extents(surface->ctx, &font_extents);
 
-	struct placement_t abs_placement = swbuf_calculate_placement(surface, &placement->placement, extents.width, font_extents.ascent);
+	unsigned int assumed_width = extents.width;
+	if (placement->width_rounding) {
+		assumed_width = (assumed_width + placement->width_rounding - 1) / placement->width_rounding * placement->width_rounding;
+	}
+
+	struct placement_t abs_placement = swbuf_calculate_placement(surface, &placement->placement, assumed_width, font_extents.ascent);
 	swbuf_set_source_rgb(surface, placement->font_color);
 	cairo_move_to(surface->ctx, abs_placement.top_left.x - extents.x_bearing, abs_placement.bottom_right.y);
 	cairo_show_text(surface->ctx, text);
+
+	if (placement->font_size == 96) {
+		fprintf(stderr, "%f\n", extents.width);
+	}
 
 #if CAIRO_DEBUG
 	swbuf_circle(surface, abs_placement.anchor.x, abs_placement.anchor.y, 4, COLOR_RED);
