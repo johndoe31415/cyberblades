@@ -28,6 +28,10 @@
 #define GET_G(rgb)					UINT8((rgb) >> 8)
 #define GET_B(rgb)					UINT8((rgb) >> 0)
 
+#define COLOR_RMASK					0x00ff0000
+#define COLOR_GMASK					0x0000ff00
+#define COLOR_BMASK					0x000000ff
+
 #define MK_RGB(r, g, b)				((UINT8(r) << 16) | (UINT8(g) << 8) | (UINT8(b) << 0))
 
 #define COLOR_BLACK					MK_RGB(0x00, 0x00, 0x00)

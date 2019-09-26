@@ -30,6 +30,7 @@
 struct display_sdl_ctx_t {
 	SDL_Window *window;
 	SDL_Surface *surface;
+	SDL_Renderer *renderer;
 };
 
 struct display_sdl_init_t {

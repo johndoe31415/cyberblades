@@ -57,8 +57,8 @@ void swbuf_clear(struct cairo_swbuf_t *surface, uint32_t bgcolor) {
 	cairo_fill(surface->ctx);
 }
 
-const uint32_t* swbuf_get_pixel_data(const struct cairo_swbuf_t *surface) {
-	return (const uint32_t*)cairo_image_surface_get_data(surface->surface);
+uint32_t* swbuf_get_pixel_data(const struct cairo_swbuf_t *surface) {
+	return (uint32_t*)cairo_image_surface_get_data(surface->surface);
 }
 
 uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, unsigned int y) {

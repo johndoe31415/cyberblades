@@ -158,7 +158,7 @@ static unsigned int display_fb_get_ctx_size(void) {
 	return sizeof(struct display_fb_ctx_t);
 }
 
-static bool display_fb_blit_buffer(struct display_t *display, const uint32_t *source, unsigned int width, unsigned int height) {
+static bool display_fb_blit_buffer(struct display_t *display, uint32_t *source, unsigned int width, unsigned int height) {
 	if (display->bits_per_pixel != 32) {
 		return false;
 	}

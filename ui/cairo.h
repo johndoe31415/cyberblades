@@ -90,7 +90,7 @@ struct placement_t {
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
 struct cairo_swbuf_t *create_swbuf(unsigned int width, unsigned int height);
 void swbuf_clear(struct cairo_swbuf_t *surface, uint32_t bgcolor);
-const uint32_t* swbuf_get_pixel_data(const struct cairo_swbuf_t *surface);
+uint32_t* swbuf_get_pixel_data(const struct cairo_swbuf_t *surface);
 uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, unsigned int y);
 void swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *placement, const char *fmt, ...);
 void swbuf_rect(struct cairo_swbuf_t *surface, const struct rect_placement_t *placement);

@@ -37,12 +37,18 @@ static void display_sdl_put_pixel(struct display_t *display, unsigned int x, uns
 static void display_sdl_commit(struct display_t *display) {
 	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
 	SDL_UpdateWindowSurface(ctx->window);
+	SDL_RenderPresent(ctx->renderer);
 }
 
 static void display_sdl_fill(struct display_t *display, uint32_t rgb) {
 	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
-	SDL_FillRect(ctx->surface, NULL, SDL_MapRGB(ctx->surface->format, GET_R(rgb), GET_G(rgb), GET_B(rgb)));
-	SDL_UpdateWindowSurface(ctx->window);
+	if (!ctx->renderer) {
+		SDL_FillRect(ctx->surface, NULL, SDL_MapRGB(ctx->surface->format, GET_R(rgb), GET_G(rgb), GET_B(rgb)));
+		SDL_UpdateWindowSurface(ctx->window);
+	} else {
+		SDL_SetRenderDrawColor(ctx->renderer, GET_R(rgb), GET_G(rgb), GET_B(rgb), 255);
+		SDL_RenderClear(ctx->renderer);
+	}
 }
 
 static void display_sdl_handle_event(struct display_t *display, SDL_Event *event) {
@@ -97,6 +103,15 @@ static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 	ctx->window = SDL_CreateWindow("Display", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, display->width, display->height, SDL_WINDOW_SHOWN);
 	if (!ctx->window) {
 		fprintf(stderr, "Could not create SDL window: %s\n", SDL_GetError());
+		SDL_Quit();
+		return false;
+	}
+
+	ctx->renderer = SDL_CreateRenderer(ctx->window, -1, SDL_RENDERER_ACCELERATED);
+	if (!ctx->renderer) {
+		fprintf(stderr, "Could not create SDL renderer: %s\n", SDL_GetError());
+		SDL_DestroyWindow(ctx->window);
+		SDL_Quit();
 		return false;
 	}
 
@@ -121,6 +136,22 @@ void display_sdl_register_events(struct display_t *display, ui_event_cb_t event_
 	pthread_create(&display->hmi_events.event_thread, NULL, display_sdl_eventthread_fnc, display);
 }
 
+/* When we use an accelerated renderer, we simply cannot directly access the
+ * target surface anymore (it's implicit), therefore, blit_buffer *must* work
+ */
+static bool display_sdl_blit_buffer(struct display_t *display, uint32_t *source, unsigned int width, unsigned int height) {
+	struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
+	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(source, width, height, 32, 4 * width, COLOR_RMASK, COLOR_GMASK, COLOR_BMASK, 0);
+	SDL_Texture *texture = SDL_CreateTextureFromSurface(ctx->renderer, surface);
+	if (surface) {
+		SDL_RenderCopy(ctx->renderer, texture, NULL, NULL);
+		SDL_FreeSurface(surface);
+		return true;
+	} else {
+		return false;
+	}
+}
+
 const struct display_calltable_t display_sdl_calltable = {
 	.init = display_sdl_init,
 	.free = display_sdl_free,
@@ -128,4 +159,5 @@ const struct display_calltable_t display_sdl_calltable = {
 	.commit = display_sdl_commit,
 	.put_pixel = display_sdl_put_pixel,
 	.get_ctx_size = display_sdl_get_ctx_size,
+	.blit_buffer = display_sdl_blit_buffer,
 };
