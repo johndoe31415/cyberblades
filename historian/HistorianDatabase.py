@@ -30,7 +30,9 @@ import gzip
 from ScoreKeeper import ScoreKeeper
 
 class HistorianDatabase():
-	_PlayResult = collections.namedtuple("PlayResult", [ "player", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "result_verdict", "result_score", "result_maxscore" ])
+	_PlayResult = collections.namedtuple("PlayResult", [ "player", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "result_verdict", "result_score", "result_maxscore", "max_combo" ])
+	_SongDifficulty = collections.namedtuple("SongDifficulty", [ "song_title", "song_author", "level_author", "difficulty" ])
+
 	def __init__(self, config):
 		self._config = config
 		self._db = sqlite3.connect(self._config.get("historian_db"))
@@ -147,4 +149,12 @@ class HistorianDatabase():
 
 	def recent_results(self, count = 10):
 		fields = ", ".join(self._PlayResult._fields)
-		return [ self._PlayResult(*row) for row in self._cursor.execute("SELECT %s FROM results ORDER BY endtime DESC;" % (fields)).fetchall() ]
+		return [ self._PlayResult(*row) for row in self._cursor.execute("SELECT %s FROM results ORDER BY endtime DESC LIMIT ?;" % (fields, count)).fetchall() ]
+
+	def all_song_difficulties(self):
+		fields = ", ".join(self._SongDifficulty._fields)
+		return [ self._SongDifficulty(*row) for row in self._cursor.execute("SELECT DISTINCT %s FROM results ORDER BY song_author ASC, song_title ASC, difficulty DESC;" % (fields)).fetchall() ]
+
+	def get_highscores(self, song_difficulty, count = 10):
+		fields = ", ".join(self._PlayResult._fields)
+		return [ self._PlayResult(*row) for row in self._cursor.execute("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY result_score DESC LIMIT ?;" % (fields), (song_difficulty.song_title, song_difficulty.song_author, song_difficulty.level_author, song_difficulty.difficulty, count)).fetchall() ]

@@ -43,5 +43,10 @@ for (dirname, subdirs, files) in os.walk("history"):
 		full_filename = dirname + "/" + filename
 		db.parse_history(full_filename)
 
-for result in db.recent_results():
-	print(result)
+#for result in db.recent_results():
+#	print(result)
+for song_difficulty in db.all_song_difficulties():
+	print("%s - %s (%d)" % (song_difficulty.song_author, song_difficulty.song_title, song_difficulty.difficulty))
+	for (number, entry) in enumerate(db.get_highscores(song_difficulty), 1):
+		print("%2d) %-15s %6d %4d %s" % (number, entry.player, entry.result_score, entry.max_combo, entry.result_verdict))
+	print()
