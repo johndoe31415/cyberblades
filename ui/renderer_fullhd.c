@@ -154,10 +154,14 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 			.yoffset = 200 + 96,
 		}
 	}, "%ld", server_state->current_song.performance.score);
-	swbuf_text(swbuf, &(const struct font_placement_t){
+
+	static unsigned int last_percentage_width = 0;
+	last_percentage_width = swbuf_text(swbuf, &(const struct font_placement_t){
 		.font_face = "Oblivious Font",
 		.font_size = 64,
 		.font_color = COLOR_ORANGE,
+		.last_width = last_percentage_width,
+		.max_width_deviation = 10,
 		.placement = {
 			.src_anchor = {
 				.x = XPOS_CENTER,
@@ -167,10 +171,45 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 				.x = XPOS_CENTER,
 				.y = YPOS_TOP,
 			},
-			.xoffset = 10,
+			.xoffset = 10 - 200,
 			.yoffset = 200 + 96 + 96,
 		}
 	}, "%.1f%%", server_state->current_song.performance.max_score ? 100. * server_state->current_song.performance.score / server_state->current_song.performance.max_score : 0);
+
+	swbuf_text(swbuf, &(const struct font_placement_t){
+		.font_face = "Oblivious Font",
+		.font_size = 64,
+		.font_color = COLOR_ORANGE,
+		.last_width = last_percentage_width,
+		.max_width_deviation = 10,
+		.placement = {
+			.src_anchor = {
+				.x = XPOS_CENTER,
+				.y = YPOS_BOTTOM,
+			},
+			.dst_anchor = {
+				.x = XPOS_CENTER,
+				.y = YPOS_TOP,
+			},
+			.xoffset = 10 + 200,
+			.yoffset = 200 + 96 + 96,
+		}
+	}, "%s", server_state->current_song.performance.rank[0] ? server_state->current_song.performance.rank : "-");
+
+	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500, COLOR_SILVER), "Combo");
+	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500 + 40, (server_state->current_song.performance.combo != server_state->current_song.performance.max_combo) ? COLOR_SILVER : COLOR_EMERLAND), "%d", server_state->current_song.performance.combo);
+
+	swbuf_text(swbuf, TEXT_PLACEMENT(-360, 500, COLOR_SILVER), "Missed Notes");
+	swbuf_text(swbuf, TEXT_PLACEMENT(-360, 500 + 40, server_state->current_song.performance.missed_notes ? COLOR_POMEGRANATE : COLOR_EMERLAND), "%d", server_state->current_song.performance.missed_notes);
+
+	swbuf_text(swbuf, TEXT_PLACEMENT(0, 500, COLOR_SILVER), "Total Notes");
+	swbuf_text(swbuf, TEXT_PLACEMENT(0, 500 + 40, COLOR_SILVER), "%d", server_state->current_song.performance.passed_notes);
+
+	swbuf_text(swbuf, TEXT_PLACEMENT(360, 500, COLOR_SILVER), "Note Percentage");
+	swbuf_text(swbuf, TEXT_PLACEMENT(360, 500 + 40, COLOR_SILVER), "%.1f%%", server_state->current_song.performance.passed_notes ? 100. * (server_state->current_song.performance.passed_notes - server_state->current_song.performance.missed_notes) / server_state->current_song.performance.passed_notes : 0);
+
+	swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 500, COLOR_SILVER), "Max Combo");
+	swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 500 + 40, COLOR_SILVER), "%d", server_state->current_song.performance.max_combo);
 }
 
 void swbuf_render_full_hd(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
