@@ -31,6 +31,7 @@ from ScoreKeeper import ScoreKeeper
 from DAOObjects import DifficultyEnum
 
 class HistorianDatabase():
+	_PlayTimes = collections.namedtuple("PlayTimes", [ "player", "playtime_secs", "score_sum", "passed_notes_sum", "missed_notes_sum" ])
 	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "maxscore", "combo", "max_combo" ])
 	_SongDifficulty = collections.namedtuple("SongDifficulty", [ "song_title", "song_author", "level_author", "difficulty" ])
 	_DBReadHandlers = {
@@ -161,9 +162,10 @@ class HistorianDatabase():
 		self._add_file_seen(filesize, mtime_micros)
 		self._db.commit()
 
-	def _results_select(self, sql_query, result_class, parameters = tuple()):
-		fields = ", ".join(result_class._fields)
-		sql_query = sql_query % (fields)
+	def _results_select(self, sql_query, result_class, parameters = tuple(), insert_fields = True):
+		if insert_fields:
+			fields = ", ".join(result_class._fields)
+			sql_query = sql_query % (fields)
 		results = [ list(row) for row in self._cursor.execute(sql_query, parameters).fetchall() ]
 		for (i, fieldname) in enumerate(result_class._fields):
 			handler = self._DBReadHandlers.get(fieldname)
@@ -171,7 +173,6 @@ class HistorianDatabase():
 				for result in results:
 					result[i] = handler(result[i])
 		return [ result_class(*result) for result in results ]
-
 
 	def recent_results(self, count = 10):
 		return self._results_select("SELECT %s FROM results ORDER BY endtime DESC LIMIT ?;", parameters = (count, ), result_class = self._PlayResult)
@@ -182,3 +183,9 @@ class HistorianDatabase():
 	def get_highscores(self, song_difficulty, count = 10):
 		return self._results_select("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY score DESC LIMIT ?;", parameters = (song_difficulty.song_title, song_difficulty.song_author, song_difficulty.level_author, song_difficulty.difficulty, count), result_class = self._PlayResult)
 
+	def get_playtimes_at(self, date):
+		datestr = date.strftime("%Y-%m-%d")
+		return self._results_select("SELECT player, SUM(playtime), SUM(score), SUM(passed_notes), SUM(missed_notes) AS playtime_secs FROM results WHERE local_ts LIKE '%s%%' GROUP BY player ORDER BY playtime_secs DESC;" % (datestr), result_class = self._PlayTimes, insert_fields = False)
+
+	def get_playtimes_today(self):
+		return self.get_playtimes_at(datetime.date.today())

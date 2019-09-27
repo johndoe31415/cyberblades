@@ -48,3 +48,8 @@ for song_difficulty in db.all_song_difficulties():
 	for (number, entry) in enumerate(db.get_highscores(song_difficulty), 1):
 		print("%2d) %-15s %6d %5.1f%% %2s %4d %-5s %s" % (number, entry.player, entry.score, entry.score / entry.maxscore * 100, entry.rank, entry.max_combo, entry.verdict, entry.local_ts.strftime("%d.%m.%Y %H:%M")))
 	print()
+
+print("Playtimes today:")
+for entry in db.get_playtimes_today():
+	playtime_secs = round(entry.playtime_secs)
+	print("%-15s %2d:%02d   %5.2f M   %d" % (entry.player, playtime_secs // 60, playtime_secs % 60, entry.score_sum / 1e6, entry.passed_notes_sum - entry.missed_notes_sum))

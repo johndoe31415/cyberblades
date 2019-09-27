@@ -64,6 +64,7 @@ class BeatSaberHistorian():
 	def _local_command_set(self, query):
 		if ("current_player" in query) and (isinstance(query["current_player"], (type(None), str))):
 			self._current_player = query["current_player"]
+			print("Current player is now %s" % (self._current_player))
 		return self._local_command_status(query)
 
 	def _process_local_command(self, query):
