@@ -19,6 +19,7 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
+import os
 import sys
 import json
 from HistorianDatabase import HistorianDatabase
@@ -32,3 +33,15 @@ args = parser.parse_args(sys.argv[1:])
 
 config = Configuration(args.config_file)
 db = HistorianDatabase(config)
+
+for (dirname, subdirs, files) in os.walk("history"):
+	for filename in files:
+		if filename.startswith("."):
+			continue
+		if not (filename.endswith(".json") or filename.endswith(".json.gz")):
+			continue
+		full_filename = dirname + "/" + filename
+		db.parse_history(full_filename)
+
+for result in db.recent_results():
+	print(result)

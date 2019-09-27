@@ -18,7 +18,21 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
+import enum
+import hashlib
 from StatisticalEval import StatisticalEval
+
+class _DifficultyEnum(enum.IntEnum):
+	Easy = 0
+	Normal = 1
+	Hard = 2
+	Expert = 3
+	ExpertPlus = 4
+
+	@classmethod
+	def byname(cls, name):
+		name = name.replace("+", "Plus")
+		return getattr(cls, name)
 
 class _SaberStatistic():
 	def __init__(self):
@@ -60,6 +74,16 @@ class ScoreKeeper():
 			"SaberA":	_SaberStatistic(),
 			"SaberB":	_SaberStatistic(),
 		}
+		self._hashdata = [ ]
+		self._gamehash = None
+
+	@property
+	def gamehash(self):
+		if (self._gamehash is None) and len(self._hashdata) == 7:
+			assert(all(isinstance(item, (str, int)) for item in self._hashdata))
+			hash_bindata = ("\n".join(str(item) for item in self._hashdata)).encode("utf-8")
+			self._gamehash = hashlib.md5(hash_bindata).hexdigest()
+		return self._gamehash
 
 	@staticmethod
 	def _get_performance(event):
@@ -71,6 +95,7 @@ class ScoreKeeper():
 			"passed_notes":		event["status"]["performance"]["passedNotes"],
 			"hit_notes":		event["status"]["performance"]["hitNotes"],
 			"missed_notes":		event["status"]["performance"]["missedNotes"],
+			"hit_bombs":		event["status"]["performance"]["hitBombs"],
 			"rank":				event["status"]["performance"]["rank"],
 		}
 
@@ -79,30 +104,34 @@ class ScoreKeeper():
 		if etype == "scoreChanged":
 			self._data["performance"] = self._get_performance(event)
 		elif etype == "songStart":
-			self._song_begin_time = event["time"]
 			self._data = {
 				"meta": {
+					"start_ts":			event["time"],
 					"song_author":		event["status"]["beatmap"]["songAuthorName"],
 					"song_title":		event["status"]["beatmap"]["songName"],
 					"level_author":		event["status"]["beatmap"]["levelAuthorName"],
 					"bpm":				event["status"]["beatmap"]["songBPM"],
 					"max_score":		event["status"]["beatmap"]["maxScore"],
 					"notes_cnt":		event["status"]["beatmap"]["notesCount"],
+					"difficulty":		int(_DifficultyEnum.byname(event["status"]["beatmap"]["difficulty"])),
 				},
 			}
+			self._hashdata += [ self._data["meta"]["start_ts"], self._data["meta"]["song_author"], self._data["meta"]["song_title"], self._data["meta"]["level_author"], self._data["meta"]["difficulty"], self._data["meta"]["notes_cnt"] ]
 		elif (etype == "finished") or (etype == "failed"):
+			self._data["meta"].update({
+				"end_ts":		event["time"],
+				"playtime":		(event["time"] - self._data["meta"]["start_ts"] - self._total_pause_duration) / 1000,
+				"pausetime":	self._total_pause_duration / 1000,
+			})
 			self._data["final"] = self._get_performance(event)
 			self._data["final"].update({
 					"verdict":			"fail" if (etype == "failed") else "pass",
-			})
-			self._data["final"].update({
-					"playtime":			(event["time"] - self._song_begin_time - self._total_pause_duration) / 1000,
-					"pausetime":		self._total_pause_duration / 1000,
 			})
 			self._data["sabers"] = {
 					"left":				self._saber_statistics["SaberA"].to_dict(),
 					"right":			self._saber_statistics["SaberB"].to_dict(),
 			}
+			self._hashdata += [ self._data["meta"]["end_ts"] ]
 		elif self._advanced and (etype == "noteFullyCut"):
 			stype = event["noteCut"]["saberType"]
 			self._saber_statistics[stype].process(event)
@@ -134,4 +163,5 @@ if __name__ == "__main__":
 
 		sk = ScoreKeeper(advanced = True)
 		sk.process_all(history["events"])
-		print(json.dumps(sk.to_dict(), indent = 4, sort_keys = True))
+		print(sk.gamehash)
+		#print(json.dumps(sk.to_dict(), indent = 4, sort_keys = True))
