@@ -28,10 +28,15 @@ import datetime
 import collections
 import gzip
 from ScoreKeeper import ScoreKeeper
+from DAOObjects import DifficultyEnum
 
 class HistorianDatabase():
-	_PlayResult = collections.namedtuple("PlayResult", [ "player", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "result_verdict", "result_score", "result_maxscore", "max_combo" ])
+	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "maxscore", "combo", "max_combo" ])
 	_SongDifficulty = collections.namedtuple("SongDifficulty", [ "song_title", "song_author", "level_author", "difficulty" ])
+	_DBReadHandlers = {
+		"difficulty":		DifficultyEnum,
+		"local_ts":			lambda x: datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%S"),
+	}
 
 	def __init__(self, config):
 		self._config = config
@@ -42,27 +47,34 @@ class HistorianDatabase():
 			CREATE TABLE results (
 				int id PRIMARY KEY,
 				player varchar NULL,
-				play_day varchar NOT NULL,
+				local_ts varchar NOT NULL,
 				starttime_local float NOT NULL,
+				gamehash varchar NOT NULL,
+
 				starttime integer NOT NULL,
 				endtime integer NOT NULL,
 				song_title varchar NOT NULL,
 				song_author varchar NOT NULL,
 				level_author varchar NOT NULL,
 				difficulty integer NOT NULL,
+
 				playtime float NOT NULL,
 				pausetime float NOT NULL,
-				gamehash varchar NOT NULL,
-				result_verdict varchar NOT NULL,
-				result_score integer NOT NULL,
-				result_maxscore integer NOT NULL,
-				result_rank varchar NOT NULL,
-				hit_bombs integer NOT NULL,
-				missed_notes integer NOT NULL,
-				passed_notes integer NOT NULL,
+				verdict varchar NOT NULL,
+				rank varchar NOT NULL,
+				score integer NOT NULL,
+				maxscore integer NOT NULL,
+				combo integer NOT NULL,
 				max_combo integer NOT NULL,
-				CHECK((result_verdict = 'pass') OR (result_verdict = 'fail')),
-				UNIQUE(starttime_local, starttime, endtime, result_score)
+				passed_bombs integer NOT NULL,
+				hit_bombs integer NOT NULL,
+				passed_notes integer NOT NULL,
+				missed_notes integer NOT NULL,
+
+				CHECK((verdict = 'pass') OR (verdict = 'fail')),
+				CHECK(difficulty >= 0),
+				CHECK(difficulty <= 4),
+				UNIQUE(starttime_local, starttime, endtime, score)
 			);
 			""")
 		with contextlib.suppress(sqlite3.OperationalError):
@@ -96,13 +108,13 @@ class HistorianDatabase():
 	def add_scorekeeper_results(self, player, starttime_local_timet, scorekeeper):
 		localzone = tzlocal.get_localzone()
 		localdatetime = localzone.fromutc(datetime.datetime.utcfromtimestamp(starttime_local_timet))
-		play_day = localdatetime.date().strftime("%Y-%m-%d")
+		local_ts = localdatetime.strftime("%Y-%m-%dT%H:%M:%S")
 
 		if not self._have_result(scorekeeper.gamehash):
 			skr = scorekeeper.to_dict()
 			rowdata = {
 				"player":			player,
-				"play_day":			play_day,
+				"local_ts":			local_ts,
 				"starttime_local":	starttime_local_timet,
 				"starttime":		skr["meta"]["start_ts"],
 				"endtime":			skr["meta"]["end_ts"],
@@ -112,13 +124,15 @@ class HistorianDatabase():
 				"song_title":		skr["meta"]["song_title"],
 				"level_author":		skr["meta"]["level_author"],
 				"difficulty":		skr["meta"]["difficulty"],
-				"result_verdict":	skr["final"]["verdict"],
-				"result_score":		skr["final"]["score"],
-				"result_maxscore":	skr["final"]["max_score"],
-				"result_rank":		skr["final"]["rank"],
+				"verdict":			skr["final"]["verdict"],
+				"score":			skr["final"]["score"],
+				"maxscore":			skr["final"]["max_score"],
+				"rank":				skr["final"]["rank"],
 				"hit_bombs":		skr["final"]["hit_bombs"],
+				"passed_bombs":		skr["final"]["passed_bombs"],
 				"missed_notes":		skr["final"]["missed_notes"],
 				"passed_notes":		skr["final"]["passed_notes"],
+				"combo":			skr["final"]["combo"],
 				"max_combo":		skr["final"]["max_combo"],
 				"gamehash":			scorekeeper.gamehash,
 			}
@@ -147,14 +161,24 @@ class HistorianDatabase():
 		self._add_file_seen(filesize, mtime_micros)
 		self._db.commit()
 
+	def _results_select(self, sql_query, result_class, parameters = tuple()):
+		fields = ", ".join(result_class._fields)
+		sql_query = sql_query % (fields)
+		results = [ list(row) for row in self._cursor.execute(sql_query, parameters).fetchall() ]
+		for (i, fieldname) in enumerate(result_class._fields):
+			handler = self._DBReadHandlers.get(fieldname)
+			if handler is not None:
+				for result in results:
+					result[i] = handler(result[i])
+		return [ result_class(*result) for result in results ]
+
+
 	def recent_results(self, count = 10):
-		fields = ", ".join(self._PlayResult._fields)
-		return [ self._PlayResult(*row) for row in self._cursor.execute("SELECT %s FROM results ORDER BY endtime DESC LIMIT ?;" % (fields, count)).fetchall() ]
+		return self._results_select("SELECT %s FROM results ORDER BY endtime DESC LIMIT ?;", parameters = (count, ), result_class = self._PlayResult)
 
 	def all_song_difficulties(self):
-		fields = ", ".join(self._SongDifficulty._fields)
-		return [ self._SongDifficulty(*row) for row in self._cursor.execute("SELECT DISTINCT %s FROM results ORDER BY song_author ASC, song_title ASC, difficulty DESC;" % (fields)).fetchall() ]
+		return self._results_select("SELECT DISTINCT %s FROM results ORDER BY song_author ASC, song_title ASC, difficulty DESC;", result_class = self._SongDifficulty)
 
 	def get_highscores(self, song_difficulty, count = 10):
-		fields = ", ".join(self._PlayResult._fields)
-		return [ self._PlayResult(*row) for row in self._cursor.execute("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY result_score DESC LIMIT ?;" % (fields), (song_difficulty.song_title, song_difficulty.song_author, song_difficulty.level_author, song_difficulty.difficulty, count)).fetchall() ]
+		return self._results_select("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY score DESC LIMIT ?;", parameters = (song_difficulty.song_title, song_difficulty.song_author, song_difficulty.level_author, song_difficulty.difficulty, count), result_class = self._PlayResult)
+

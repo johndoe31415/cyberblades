@@ -18,21 +18,9 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
-import enum
 import hashlib
 from StatisticalEval import StatisticalEval
-
-class _DifficultyEnum(enum.IntEnum):
-	Easy = 0
-	Normal = 1
-	Hard = 2
-	Expert = 3
-	ExpertPlus = 4
-
-	@classmethod
-	def byname(cls, name):
-		name = name.replace("+", "Plus")
-		return getattr(cls, name)
+from DAOObjects import DifficultyEnum
 
 class _SaberStatistic():
 	def __init__(self):
@@ -96,6 +84,7 @@ class ScoreKeeper():
 			"hit_notes":		event["status"]["performance"]["hitNotes"],
 			"missed_notes":		event["status"]["performance"]["missedNotes"],
 			"hit_bombs":		event["status"]["performance"]["hitBombs"],
+			"passed_bombs":		event["status"]["performance"]["passedBombs"],
 			"rank":				event["status"]["performance"]["rank"],
 		}
 
@@ -113,7 +102,7 @@ class ScoreKeeper():
 					"bpm":				event["status"]["beatmap"]["songBPM"],
 					"max_score":		event["status"]["beatmap"]["maxScore"],
 					"notes_cnt":		event["status"]["beatmap"]["notesCount"],
-					"difficulty":		int(_DifficultyEnum.byname(event["status"]["beatmap"]["difficulty"])),
+					"difficulty":		int(DifficultyEnum.byname(event["status"]["beatmap"]["difficulty"])),
 				},
 			}
 			self._hashdata += [ self._data["meta"]["start_ts"], self._data["meta"]["song_author"], self._data["meta"]["song_title"], self._data["meta"]["level_author"], self._data["meta"]["difficulty"], self._data["meta"]["notes_cnt"] ]
