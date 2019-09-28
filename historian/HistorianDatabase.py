@@ -27,6 +27,7 @@ import pytz
 import datetime
 import collections
 import gzip
+import time
 from ScoreKeeper import ScoreKeeper
 from DAOObjects import DifficultyEnum
 
@@ -191,3 +192,7 @@ class HistorianDatabase():
 
 	def get_playtimes_today(self):
 		return self.get_playtimes_at(datetime.date.today())
+
+	def get_last_games(self, time_duration_secs = 3600 * 3, count = 10):
+		starttime_after = time.time() - time_duration_secs
+		return self._results_select("SELECT %s FROM results WHERE starttime_local > ? ORDER BY endtime DESC LIMIT ?;", parameters = (starttime_after, count), result_class = self._PlayResult)

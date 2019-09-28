@@ -43,13 +43,33 @@ for (dirname, subdirs, files) in os.walk("history"):
 		full_filename = dirname + "/" + filename
 		db.parse_history(full_filename)
 
+def format_result(result, show_song = False):
+	if not show_song:
+		return "%-15s %6d %5.1f%% %2s %4d %-5s %s" % (result.player, result.score, result.score / result.maxscore * 100, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"))
+	else:
+		return "%-15s %6d %5.1f%% %2s %4d %-5s %-20s %s" % (result.player, result.score, result.score / result.maxscore * 100, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"), result.song_title)
+
+
 for song_difficulty in db.all_song_difficulties():
 	print("%s - %s (%s)" % (song_difficulty.song_author, song_difficulty.song_title, song_difficulty.difficulty.name))
 	for (number, entry) in enumerate(db.get_highscores(song_difficulty), 1):
-		print("%2d) %-15s %6d %5.1f%% %2s %4d %-5s %s" % (number, entry.player, entry.score, entry.score / entry.maxscore * 100, entry.rank, entry.max_combo, entry.verdict, entry.local_ts.strftime("%d.%m.%Y %H:%M")))
+		print("%2d) %s" % (number, format_result(entry)))
 	print()
 
-print("Playtimes today:")
-for entry in db.get_playtimes_today():
-	playtime_secs = round(entry.playtime_secs)
-	print("%-15s %2d:%02d   %5.2f M   %d" % (entry.player, playtime_secs // 60, playtime_secs % 60, entry.score_sum / 1e6, entry.passed_notes_sum - entry.missed_notes_sum))
+playtimes_today = db.get_playtimes_today()
+if len(playtimes_today) == 0:
+	print("No games played today yet.")
+else:
+	print("Playtimes today:")
+	for entry in playtimes_today:
+		playtime_secs = round(entry.playtime_secs)
+		print("%-15s %2d:%02d   %5.2f M   %d" % (entry.player, playtime_secs // 60, playtime_secs % 60, entry.score_sum / 1e6, entry.passed_notes_sum - entry.missed_notes_sum))
+print()
+
+last_games = db.get_last_games()
+if len(last_games) == 0:
+	print("No games played recently.")
+else:
+	print("Last games:")
+	for last_game in last_games:
+		print(format_result(last_game, show_song = True))
