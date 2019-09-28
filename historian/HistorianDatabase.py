@@ -54,8 +54,8 @@ class HistorianDatabase():
 
 				starttime integer NOT NULL,
 				endtime integer NOT NULL,
-				song_title varchar NOT NULL,
 				song_author varchar NOT NULL,
+				song_title varchar NOT NULL,
 				level_author varchar NOT NULL,
 				difficulty integer NOT NULL,
 
@@ -117,25 +117,27 @@ class HistorianDatabase():
 				"player":			player,
 				"local_ts":			local_ts,
 				"starttime_local":	starttime_local_timet,
+				"gamehash":			scorekeeper.gamehash,
+
 				"starttime":		skr["meta"]["start_ts"],
 				"endtime":			skr["meta"]["end_ts"],
-				"playtime":			skr["meta"]["playtime"],
-				"pausetime":		skr["meta"]["pausetime"],
 				"song_author":		skr["meta"]["song_author"],
 				"song_title":		skr["meta"]["song_title"],
 				"level_author":		skr["meta"]["level_author"],
 				"difficulty":		skr["meta"]["difficulty"],
+
+				"playtime":			skr["meta"]["playtime"],
+				"pausetime":		skr["meta"]["pausetime"],
 				"verdict":			skr["final"]["verdict"],
+				"rank":				skr["final"]["rank"],
 				"score":			skr["final"]["score"],
 				"maxscore":			skr["final"]["max_score"],
-				"rank":				skr["final"]["rank"],
-				"hit_bombs":		skr["final"]["hit_bombs"],
-				"passed_bombs":		skr["final"]["passed_bombs"],
-				"missed_notes":		skr["final"]["missed_notes"],
-				"passed_notes":		skr["final"]["passed_notes"],
 				"combo":			skr["final"]["combo"],
 				"max_combo":		skr["final"]["max_combo"],
-				"gamehash":			scorekeeper.gamehash,
+				"passed_bombs":		skr["final"]["passed_bombs"],
+				"hit_bombs":		skr["final"]["hit_bombs"],
+				"passed_notes":		skr["final"]["passed_notes"],
+				"missed_notes":		skr["final"]["missed_notes"],
 			}
 			self._insert_result(rowdata)
 
