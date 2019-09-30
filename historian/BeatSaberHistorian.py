@@ -170,6 +170,11 @@ class BeatSaberHistorian():
 						msg = await websocket.recv()
 						msg = json.loads(msg)
 						self._handle_beatsaber_event(msg)
+					if self._current_data is not None:
+						self._current_data = None
+						print("Disconnected from BeatSaber; warning: data of current song is lost.")
+					else:
+						print("Disconnected from BeatSaber.")
 			except (OSError, ConnectionRefusedError, websockets.exceptions.ConnectionClosed):
 				self._connected_to_beatsaber = False
 				await asyncio.sleep(1)
