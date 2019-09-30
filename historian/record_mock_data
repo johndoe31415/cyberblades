@@ -33,7 +33,7 @@ parser.add_argument("mockfile", metavar = "mockfile", type = str, help = "JSON m
 args = parser.parse_args(sys.argv[1:])
 
 config = Configuration(args.config_file)
-uri = config.subs(config["beatsaber_websocket_uri"])
+uri = config["beatsaber_websocket_uri"]
 
 messages = [ ]
 

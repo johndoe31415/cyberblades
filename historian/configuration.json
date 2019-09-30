@@ -1,7 +1,8 @@
 {
 	"beatsaber_websocket_uri":		"ws://sz:6557/socket",
 	"unix_socket":					"${base_dir}unix_sock",
-	"history_files":				"${base_dir}history/${player}/${datetime_utc}.json",
+	"history_directory":			"${base_dir}history/",
 	"permanent_players":			[ "joe", "julia" ],
-	"historian_db":					"${base_dir}historian.sqlite3"
+	"historian_db":					"${base_dir}historian.sqlite3",
+	"heartrate_monitor":			"${base_dir}hrm_socket"
 }

@@ -42,7 +42,7 @@ class HistorianDatabase():
 
 	def __init__(self, config):
 		self._config = config
-		self._db = sqlite3.connect(self._config.get("historian_db"))
+		self._db = sqlite3.connect(self._config["historian_db"])
 		self._cursor = self._db.cursor()
 		with contextlib.suppress(sqlite3.OperationalError):
 			self._cursor.execute("""

@@ -30,13 +30,13 @@ class Configuration():
 		if not self._base_dir.endswith("/"):
 			self._base_dir += "/"
 
-	def subs(self, text):
+	def _subs(self, text):
 		text = text.replace("${base_dir}", self._base_dir)
 		text = text.replace("${datetime_utc}", datetime.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S"))
 		return text
 
-	def get(self, key):
-		return self.subs(self[key])
+	def has(self, key):
+		return key in self._config
 
 	def __getitem__(self, key):
-		return self._config[key]
+		return self._subs(self._config[key])

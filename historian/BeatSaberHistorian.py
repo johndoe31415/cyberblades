@@ -26,6 +26,7 @@ import json
 import time
 import datetime
 import contextlib
+import gzip
 from ScoreKeeper import ScoreKeeper
 
 class BeatSaberHistorian():
@@ -39,9 +40,9 @@ class BeatSaberHistorian():
 		self._last_score = None
 		self._score_change = asyncio.Event()
 
-	def _subs(self, text):
-		text = text.replace("${player}", self._current_player or "unknown_player")
-		return self._config.subs(text)
+#	def _subs(self, text):
+#		text = text.replace("${player}", self._current_player or "unknown_player")
+#		return self._config.subs(text)
 
 	def _get_status_dict(self):
 		return {
@@ -123,13 +124,14 @@ class BeatSaberHistorian():
 		writer.close()
 
 	async def _create_local_server(self):
-		await asyncio.start_unix_server(self._local_server_tasks, path = self._subs(self._config["unix_socket"]))
+		await asyncio.start_unix_server(self._local_server_tasks, path = self._config["unix_socket"])
 
 	def _finish_song(self):
-		destination_filename = self._subs(self._config["history_files"])
+		now = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+		destination_filename = self._config["history_directory"] + "/" + (self._current_player if (self._current_player is not None) else "unknown_player") + "/" + now + ".json.gz"
 		with contextlib.suppress(FileExistsError):
 			os.makedirs(os.path.dirname(destination_filename))
-		with open(destination_filename, "w") as f:
+		with gzip.open(destination_filename, "wt") as f:
 			json.dump(self._current_data, f)
 			f.write("\n")
 		self._current_data = None
@@ -158,7 +160,7 @@ class BeatSaberHistorian():
 			self._score_change.set()
 
 	async def _connect_beatsaber(self):
-		uri = self._config.subs(self._config["beatsaber_websocket_uri"])
+		uri = self._config["beatsaber_websocket_uri"]
 		while True:
 			try:
 				async with websockets.connect(uri) as websocket:
@@ -172,21 +174,19 @@ class BeatSaberHistorian():
 				self._connected_to_beatsaber = False
 				await asyncio.sleep(1)
 
-	async def _feed_mock_data(self):
-		await asyncio.sleep(3)
-		with open("mock_events.txt") as f:
-			for line in f:
-				msg = json.loads(line)
-				self._handle_beatsaber_event(msg)
-#				await asyncio.sleep(0.01)
+	async def _connect_heartrate_monitor(self):
+		socket = self._config["heartrate_monitor"]
+		while True:
+			await asyncio.sleep(1)
 
 	def start(self):
 		loop = asyncio.get_event_loop()
 		loop.create_task(self._create_local_server())
 		loop.create_task(self._connect_beatsaber())
-#		loop.create_task(self._feed_mock_data())
+		if self._config.has("heartrate_monitor"):
+			loop.create_task(self._connect_heartrate_monitor())
 		try:
 			loop.run_forever()
 		except KeyboardInterrupt:
 			with contextlib.suppress(FileNotFoundError):
-				os.unlink(self._subs(self._config["unix_socket"]))
+				os.unlink(self._config["unix_socket"])

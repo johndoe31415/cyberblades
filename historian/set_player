@@ -31,7 +31,7 @@ parser.add_argument("playername", metavar = "playername", type = str, help = "Na
 args = parser.parse_args(sys.argv[1:])
 
 config = Configuration(args.config_file)
-sockfile = config.subs(config["unix_socket"])
+sockfile = config["unix_socket"]
 
 conn = socket.socket(family = socket.AF_UNIX, type = socket.SOCK_STREAM, proto = 0)
 conn.connect(sockfile)
