@@ -78,8 +78,9 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 	if (json_connection) {
 		if (strncpycmp(server_state->player.name, jsondom_get_dict_str(json_connection, "current_player"), sizeof(server_state->player.name))) {
 			/* Player name has changed */
-			historian_command(&server_state->historian, "playerinfo", "\"player\":\"%s\"", server_state->player.name);
+			historian_command(server_state->historian, "playerinfo", "\"player\":\"%s\"", server_state->player.name);
 		}
+		server_state->connected_to_beatsaber = jsondom_get_dict_bool(json_connection, "connected_to_beatsaber");
 
 		if (jsondom_get_dict_bool(json_connection, "in_game")) {
 			server_state->ui_screen = GAME_SCREEN;
@@ -89,6 +90,16 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 
 	parse_game_info(&server_state->current_song, jsondom_get_dict_dict(json, "current_game"));
 	isleep_interrupt(&server_state->isleep);
+}
+
+static void event_handle_historian_playerinfo(struct server_state_t *server_state, struct jsondom_t *json) {
+	const char *player = jsondom_get_dict_str(jsondom_get_dict_dict(json, "today"), "player");
+	if (!player || strcmp(player, server_state->player.name)) {
+		/* No player set or different player given */
+		return;
+	}
+	server_state->player.playtime_today_secs = jsondom_get_dict_float(jsondom_get_dict_dict(json, "today"), "playtime_secs");
+	server_state->player.total_score_today = jsondom_get_dict_int(jsondom_get_dict_dict(json, "today"), "score_sum");
 }
 
 static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *ctx) {
@@ -103,18 +114,26 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 		printf("%p\n", event);
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
+//		jsondom_dump(event->json);
 
 		const char *msgtype = jsondom_get_dict_str(event->json, "msgtype");
 		if (msgtype) {
 			if (!strcmp(msgtype, "status")) {
 				event_handle_historian_status(server_state, event->json);
+			} else if (!strcmp(msgtype, "playerinfo")) {
+				event_handle_historian_playerinfo(server_state, event->json);
 			} else {
 				fprintf(stderr, "Unhandled incoming message:\n");
 				jsondom_dump(event->json);
 			}
+		} else {
+			fprintf(stderr, "No 'msgtype' present:\n");
+			jsondom_dump(event->json);
 		}
 	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
-		if (server_state->historian->connection_state == UNCONNECTED) {
+		struct ui_event_historian_statechg_t *event = (struct ui_event_historian_statechg_t*)vevent;
+		if (event->new_state == UNCONNECTED) {
+			server_state->connected_to_beatsaber = false;
 			server_state->ui_screen = MAIN_SCREEN;
 			server_state->screen_shown_at_ts = now();
 			isleep_interrupt(&server_state->isleep);

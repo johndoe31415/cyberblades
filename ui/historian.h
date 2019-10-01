@@ -29,8 +29,7 @@
 
 enum historian_state_t {
 	UNCONNECTED,
-	CONNECTED_WAITING,
-	CONNECTED_READY,
+	CONNECTED,
 };
 
 struct historian_t {

@@ -339,6 +339,15 @@ int64_t jsondom_get_dict_int(struct jsondom_t *element, const char *key) {
 	}
 }
 
+double jsondom_get_dict_float(struct jsondom_t *element, const char *key) {
+	struct jsondom_t *value = jsondom_get_dict(element, key);
+	if (value && (value->elementtype == JD_DOUBLE)) {
+		return value->element.double_value;
+	} else {
+		return 0;
+	}
+}
+
 bool jsondom_get_dict_bool(struct jsondom_t *element, const char *key) {
 	struct jsondom_t *value = jsondom_get_dict(element, key);
 	if (value && (value->elementtype == JD_BOOLEAN)) {

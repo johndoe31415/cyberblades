@@ -76,6 +76,7 @@ struct server_state_t {
 	enum ui_screen_t ui_screen;
 	double screen_shown_at_ts;
 
+	bool connected_to_beatsaber;
 	struct player_info_t player;
 	struct song_info_t current_song;
 

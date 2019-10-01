@@ -87,11 +87,6 @@ static void handle_historian_connection(struct historian_t *historian) {
 
 		/* Event recived */
 		if (historian->event_callback) {
-			struct jsondom_t *connection = jsondom_get_dict_dict(jsondom_get_dict_dict(json, "status"), "connection");
-			if (connection) {
-			 	enum historian_state_t connection_state = jsondom_get_dict_bool(connection, "connected_to_beatsaber") ? CONNECTED_READY : CONNECTED_WAITING;
-				historian_change_state(historian, connection_state);
-			}
 			historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .historian = historian, .json = json }), historian->event_callback_ctx);
 		}
 		jsondom_free(json);
@@ -150,7 +145,7 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 		}
 		pthread_mutex_unlock(&historian->f_mutex);
 
-		historian_change_state(historian, CONNECTED_WAITING);
+		historian_change_state(historian, CONNECTED);
 		handle_historian_connection(historian);
 		shutdown(fd, SHUT_RDWR);
 

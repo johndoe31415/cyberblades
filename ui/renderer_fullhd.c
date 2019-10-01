@@ -68,16 +68,16 @@ static void swbuf_render_main_screen_bottom_box(const struct server_state_t *ser
 			text = "Historian unavailable";
 			break;
 
-		case CONNECTED_WAITING:
-			fgcolor = COLOR_BLACK;
-			bgcolor = COLOR_SUN_FLOWER;
-			text = "Not connected to BeatSaber";
-			break;
-
-		case CONNECTED_READY:
-			fgcolor = COLOR_WHITE;
-			bgcolor = COLOR_EMERLAND;
-			text = "Ready for action!";
+		case CONNECTED:
+			if (!server_state->connected_to_beatsaber) {
+				fgcolor = COLOR_BLACK;
+				bgcolor = COLOR_SUN_FLOWER;
+				text = "Not connected to BeatSaber";
+			} else {
+				fgcolor = COLOR_WHITE;
+				bgcolor = COLOR_EMERLAND;
+				text = "Ready for action!";
+			}
 			break;
 	}
 
