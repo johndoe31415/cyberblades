@@ -39,7 +39,8 @@ OBJS := \
 	tools.o \
 	isleep.o \
 	signals.o \
-	renderer_fullhd.o
+	renderer_fullhd.o \
+	llist.o
 
 ifeq ($(BUILD_WITH_SDL),1)
 OBJS +=	display_sdl.o

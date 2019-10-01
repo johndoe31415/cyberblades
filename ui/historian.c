@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdarg.h>
 #include <sys/socket.h>
 #include <linux/un.h>
 #include <unistd.h>
@@ -70,39 +71,17 @@ static void handle_historian_connection(struct historian_t *historian) {
 			break;
 		}
 
-		char *value = jsondom_get_dict_str(json, "msgtype");
-		if (value && !strcmp(value, "event")) {
-			/* Event recived */
-			if (historian->event_callback) {
-				struct jsondom_t *connection = jsondom_get_dict_dict(jsondom_get_dict_dict(json, "status"), "connection");
-				if (connection) {
-				 	enum historian_state_t current_connection_state = jsondom_get_dict_bool(connection, "connected_to_beatsaber") ? CONNECTED_READY : CONNECTED_WAITING;
-					if (current_connection_state != historian->connection_state) {
-						historian->connection_state = current_connection_state;
-						historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
-					}
+		/* Event recived */
+		if (historian->event_callback) {
+			struct jsondom_t *connection = jsondom_get_dict_dict(jsondom_get_dict_dict(json, "status"), "connection");
+			if (connection) {
+			 	enum historian_state_t current_connection_state = jsondom_get_dict_bool(connection, "connected_to_beatsaber") ? CONNECTED_READY : CONNECTED_WAITING;
+				if (current_connection_state != historian->connection_state) {
+					historian->connection_state = current_connection_state;
+					historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
 				}
-
-				historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .json = json }), historian->event_callback_ctx);
 			}
-		} else if (value && !strcmp(value, "response")) {
-			/* Response recived */
-			fprintf(stderr, "Received response message in reader thread\n");
-			bool free_json = false;
-			pthread_mutex_lock(&historian->f_mutex);
-			if (historian->response == NULL) {
-				free_json = true;
-			} else {
-				*(historian->response) = json;
-				pthread_cond_broadcast(&historian->response_cond);
-			}
-			pthread_mutex_unlock(&historian->f_mutex);
-
-			if (!free_json) {
-				return;
-			}
-		} else {
-			fprintf(stderr, "Unrecognized msgtype received: %s\n", value);
+			historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .historian = historian, .json = json }), historian->event_callback_ctx);
 		}
 		jsondom_free(json);
 	}
@@ -138,11 +117,6 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 			continue;
 		}
 
-		historian->connection_state = CONNECTED_WAITING;
-		if (historian->event_callback) {
-			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
-		}
-
 		pthread_mutex_lock(&historian->f_mutex);
 		historian->f_read = fdopen(fd, "r");
 		if (!historian->f_read) {
@@ -164,6 +138,11 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 			continue;
 		}
 		pthread_mutex_unlock(&historian->f_mutex);
+
+		historian->connection_state = CONNECTED_WAITING;
+		if (historian->event_callback) {
+			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
+		}
 
 		handle_historian_connection(historian);
 		shutdown(fd, SHUT_RDWR);
@@ -206,43 +185,35 @@ struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t his
 	return historian;
 }
 
-static struct jsondom_t *historian_command_once(struct historian_t *historian, const char *command_query) {
-	pthread_mutex_lock(&historian->f_mutex);
-	if (!historian->f_write || historian->response) {
-		/* Either we cannot write or someone else is currently writing -- we're
-		 * not doing this. */
-		pthread_mutex_unlock(&historian->f_mutex);
-		return NULL;
-	}
-
-	/* Alright, we can technically write and receive a response. Let's do it. */
-	struct jsondom_t *response = NULL;
-	historian->response = &response;
-	fprintf(historian->f_write, "{ \"cmd\": \"%s\" }\n", command_query);
-	fflush(historian->f_write);
-
-	struct timespec abstime;
-	get_abs_timespec_offset(&abstime, 2000);
-	while (!response) {
-		if (pthread_cond_timedwait(&historian->response_cond, &historian->f_mutex, &abstime) == ETIMEDOUT) {
-			break;
+void historian_command(struct historian_t *historian, const char *cmdname, const char *params, ...) {
+	char msgbuf[256];
+	if (!params) {
+		snprintf(msgbuf, sizeof(msgbuf), "{\"cmd\":\"%s\"}\n", cmdname);
+	} else {
+		unsigned int offset = 0;
+		if (offset < sizeof(msgbuf)) {
+			offset += snprintf(msgbuf + offset, sizeof(msgbuf) - offset, "{\"cmd\":\"%s\",", cmdname);
+		}
+		va_list ap;
+		va_start(ap, params);
+		if (offset < sizeof(msgbuf)) {
+			offset += vsnprintf(msgbuf + offset, sizeof(msgbuf) - offset, params, ap);
+		}
+		va_end(ap);
+		if (offset < sizeof(msgbuf)) {
+			offset += snprintf(msgbuf + offset, sizeof(msgbuf) - offset, "}\n");
 		}
 	}
-	historian->response = NULL;
+	pthread_mutex_lock(&historian->f_mutex);
+	if (historian->f_write) {
+		fputs(msgbuf, historian->f_write);
+		fflush(historian->f_write);
+	}
 	pthread_mutex_unlock(&historian->f_mutex);
-
-	return response;
 }
 
-struct jsondom_t *historian_command(struct historian_t *historian, const char *command_query) {
-	for (unsigned int i = 0; i < 3; i++) {
-		struct jsondom_t *response = historian_command_once(historian, command_query);
-		if (response) {
-			return response;
-		}
-		sleep(1);
-	}
-	return NULL;
+void historian_simple_command(struct historian_t *historian, const char *cmdname) {
+	return historian_command(historian, cmdname, NULL);
 }
 
 void historian_free(struct historian_t *historian) {
@@ -271,19 +242,17 @@ static void event_callback(enum ui_eventtype_t event_type, void *event, void *ct
 	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
 		struct ui_event_historian_statechg_t *msg = (struct ui_event_historian_statechg_t *)event;
 		printf("Historian state now %d\n", msg->historian->connection_state);
+		if (msg->historian->connection_state != UNCONNECTED) {
+			historian_command(msg->historian, "set_player", "\"player\": \"%s\"", "joe");
+			historian_command(msg->historian, "playerinfo", "\"player\": \"%s\"", "joe");
+		}
 	}
 }
 
 int main(void) {
 	struct historian_t *historian = historian_connect("../historian/unix_sock", event_callback, NULL);
 	for (int i = 0; i < 2; i++) {
-		struct jsondom_t *response = historian_command(historian, "status");
-		fprintf(stderr, "historian_command %d: %p\n", i, response);
-		if (response) {
-			fprintf(stderr, "Received response message %d in API:\n", i);
-			jsondom_dump(response);
-			jsondom_free(response);
-		}
+		historian_simple_command(historian, "status");
 	}
 	for (int i = 0; i < 3; i++) {
 		sleep(1);

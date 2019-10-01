@@ -49,7 +49,8 @@ struct historian_t {
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
 struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t historian_event_cb, void *callback_ctx);
-struct jsondom_t *historian_command(struct historian_t *historian, const char *command_query);
+void historian_command(struct historian_t *historian, const char *cmdname, const char *params, ...);
+void historian_simple_command(struct historian_t *historian, const char *cmdname);
 void historian_free(struct historian_t *historian);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 

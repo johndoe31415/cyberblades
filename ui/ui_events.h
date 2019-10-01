@@ -43,11 +43,13 @@ struct ui_event_keypress_t {
 	enum key_t key;
 };
 
+struct historian_t;
+
 struct ui_event_historian_msg_t {
+	struct historian_t *historian;
 	struct jsondom_t* json;
 };
 
-struct historian_t;
 struct ui_event_historian_statechg_t {
 	struct historian_t *historian;
 };

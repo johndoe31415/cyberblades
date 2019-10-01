@@ -82,7 +82,7 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 		exit(EXIT_SUCCESS);
 	} else if (event_type == EVENT_KEYPRESS) {
 		struct ui_event_keypress_t *event = (struct ui_event_keypress_t*)vevent;
-
+		printf("%p\n", event);
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
 		//jsondom_dump(event->json);
