@@ -1,4 +1,4 @@
-.PHONY: test testfb
+.PHONY: test gdb testfb
 
 ARCH := $(shell uname -p)
 ifeq ($(ARCH),unknown)
@@ -23,7 +23,8 @@ LDFLAGS += `pkg-config --libs sdl2`
 endif
 
 ifeq ($(DEVELOPMENT),1)
-#CFLAGS += -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2
+CFLAGS += -ggdb3 
+#CFLAGS += -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2
 CFLAGS += -DDEVELOPMENT
 TEST_FLAGS +=
 endif
@@ -64,6 +65,9 @@ clean:
 
 test: all
 	./cyberblades-ui
+
+gdb: all
+	gdb --args ./cyberblades-ui
 
 testfb:
 	./cyberblades-ui /dev/fb0

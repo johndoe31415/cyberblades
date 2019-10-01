@@ -48,6 +48,20 @@ static bool truncate_crlf(char *string) {
 	return truncated;
 }
 
+static void historian_change_state(struct historian_t *historian, enum historian_state_t new_state) {
+	if (new_state != historian->connection_state) {
+		if (historian->event_callback) {
+			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t) {
+					.historian = historian,
+					.old_state = historian->connection_state,
+					.new_state = new_state
+			}), historian->event_callback_ctx);
+		}
+		historian->connection_state = new_state;
+	}
+}
+
+
 static void handle_historian_connection(struct historian_t *historian) {
 	while (historian->running) {
 		char line_buffer[1024 * 16];
@@ -75,11 +89,8 @@ static void handle_historian_connection(struct historian_t *historian) {
 		if (historian->event_callback) {
 			struct jsondom_t *connection = jsondom_get_dict_dict(jsondom_get_dict_dict(json, "status"), "connection");
 			if (connection) {
-			 	enum historian_state_t current_connection_state = jsondom_get_dict_bool(connection, "connected_to_beatsaber") ? CONNECTED_READY : CONNECTED_WAITING;
-				if (current_connection_state != historian->connection_state) {
-					historian->connection_state = current_connection_state;
-					historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
-				}
+			 	enum historian_state_t connection_state = jsondom_get_dict_bool(connection, "connected_to_beatsaber") ? CONNECTED_READY : CONNECTED_WAITING;
+				historian_change_state(historian, connection_state);
 			}
 			historian->event_callback(EVENT_HISTORIAN_MESSAGE, &((struct ui_event_historian_msg_t){ .historian = historian, .json = json }), historian->event_callback_ctx);
 		}
@@ -139,11 +150,7 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 		}
 		pthread_mutex_unlock(&historian->f_mutex);
 
-		historian->connection_state = CONNECTED_WAITING;
-		if (historian->event_callback) {
-			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
-		}
-
+		historian_change_state(historian, CONNECTED_WAITING);
 		handle_historian_connection(historian);
 		shutdown(fd, SHUT_RDWR);
 
@@ -154,10 +161,7 @@ static void* historian_connection_thread_fnc(void *vhistorian) {
 		historian->f_write = NULL;
 		pthread_mutex_unlock(&historian->f_mutex);
 
-		historian->connection_state = UNCONNECTED;
-		if (historian->event_callback) {
-			historian->event_callback(EVENT_HISTORIAN_STATECHG, &((struct ui_event_historian_statechg_t){ .historian = historian }), historian->event_callback_ctx);
-		}
+		historian_change_state(historian, UNCONNECTED);
 	}
 	return NULL;
 }
@@ -170,7 +174,6 @@ struct historian_t *historian_connect(const char *unix_socket, ui_event_cb_t his
 	}
 
 	pthread_mutex_init(&historian->f_mutex, NULL);
-	pthread_cond_init(&historian->response_cond, NULL);
 	historian->connection_state = UNCONNECTED;
 	historian->unix_socket = unix_socket;
 	historian->event_callback = historian_event_cb;
@@ -208,6 +211,9 @@ void historian_command(struct historian_t *historian, const char *cmdname, const
 	if (historian->f_write) {
 		fputs(msgbuf, historian->f_write);
 		fflush(historian->f_write);
+	} else {
+		fprintf(stderr, "Command discarded, no write connection: %s", msgbuf);
+		*((int*)NULL) = 0;
 	}
 	pthread_mutex_unlock(&historian->f_mutex);
 }

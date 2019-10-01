@@ -37,8 +37,6 @@ struct historian_t {
 	const char *unix_socket;
 	FILE *f_read, *f_write;
 	pthread_mutex_t f_mutex;
-	struct jsondom_t **response;
-	pthread_cond_t response_cond;
 	enum historian_state_t connection_state;
 	ui_event_cb_t event_callback;
 	void *event_callback_ctx;

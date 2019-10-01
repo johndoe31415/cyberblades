@@ -52,6 +52,7 @@ struct ui_event_historian_msg_t {
 
 struct ui_event_historian_statechg_t {
 	struct historian_t *historian;
+	unsigned int old_state, new_state;
 };
 
 typedef void (*ui_event_cb_t)(enum ui_eventtype_t event_type, void *event, void *ctx);

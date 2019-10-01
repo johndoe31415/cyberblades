@@ -24,6 +24,7 @@
 #define __TOOLS_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/time.h>
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
@@ -31,6 +32,7 @@ double now(void);
 void add_timespec_offset(struct timespec *timespec, int32_t offset_milliseconds);
 void get_timespec_now(struct timespec *timespec);
 void get_abs_timespec_offset(struct timespec *timespec, int32_t offset_milliseconds);
+bool strncpycmp(char *dest, const char *src, unsigned int dest_buffer_size);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

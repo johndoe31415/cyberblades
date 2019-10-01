@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <sys/time.h>
+#include <string.h>
 #include "tools.h"
 
 double now(void) {
@@ -58,4 +59,16 @@ void get_timespec_now(struct timespec *timespec) {
 void get_abs_timespec_offset(struct timespec *timespec, int32_t offset_milliseconds) {
 	get_timespec_now(timespec);
 	add_timespec_offset(timespec, offset_milliseconds);
+}
+
+bool strncpycmp(char *dest, const char *src, unsigned int dest_buffer_size) {
+	bool changed;
+	if (src == NULL) {
+		changed = (dest[0] != 0);
+		dest[0] = 0;
+	} else {
+		changed = strncmp(dest, src, dest_buffer_size);
+		strncpy(dest, src, dest_buffer_size - 1);
+	}
+	return changed;
 }

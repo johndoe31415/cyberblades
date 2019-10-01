@@ -73,6 +73,24 @@ static void parse_game_info(struct song_info_t *song, struct jsondom_t *song_jso
 	}
 }
 
+static void event_handle_historian_status(struct server_state_t *server_state, struct jsondom_t *json) {
+	struct jsondom_t *json_connection = jsondom_get_dict_dict(json, "connection");
+	if (json_connection) {
+		if (strncpycmp(server_state->player.name, jsondom_get_dict_str(json_connection, "current_player"), sizeof(server_state->player.name))) {
+			/* Player name has changed */
+			historian_command(&server_state->historian, "playerinfo", "\"player\":\"%s\"", server_state->player.name);
+		}
+
+		if (jsondom_get_dict_bool(json_connection, "in_game")) {
+			server_state->ui_screen = GAME_SCREEN;
+			server_state->screen_shown_at_ts = now();
+		}
+	}
+
+	parse_game_info(&server_state->current_song, jsondom_get_dict_dict(json, "current_game"));
+	isleep_interrupt(&server_state->isleep);
+}
+
 static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *ctx) {
 	struct server_state_t *server_state = (struct server_state_t*)ctx;
 
@@ -85,29 +103,16 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 		printf("%p\n", event);
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
-		//jsondom_dump(event->json);
 
-		struct jsondom_t *json_status = jsondom_get_dict_dict(event->json, "status");
-		struct jsondom_t *json_connection = jsondom_get_dict_dict(json_status, "connection");
-		if (json_connection) {
-			//jsondom_dump(json_connection);
-			const char *current_player = jsondom_get_dict_str(json_connection, "current_player");
-			if (current_player) {
-				strncpy(server_state->player.name, current_player, sizeof(server_state->player.name) - 1);
+		const char *msgtype = jsondom_get_dict_str(event->json, "msgtype");
+		if (msgtype) {
+			if (!strcmp(msgtype, "status")) {
+				event_handle_historian_status(server_state, event->json);
 			} else {
-				server_state->player.name[0] = 0;
-			}
-
-			if (jsondom_get_dict_bool(json_connection, "in_game")) {
-				server_state->ui_screen = GAME_SCREEN;
-				server_state->screen_shown_at_ts = now();
+				fprintf(stderr, "Unhandled incoming message:\n");
+				jsondom_dump(event->json);
 			}
 		}
-
-		parse_game_info(&server_state->current_song, jsondom_get_dict_dict(json_status, "current_game"));
-
-
-		isleep_interrupt(&server_state->isleep);
 	} else if (event_type == EVENT_HISTORIAN_STATECHG) {
 		if (server_state->historian->connection_state == UNCONNECTED) {
 			server_state->ui_screen = MAIN_SCREEN;
