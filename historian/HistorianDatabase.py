@@ -32,8 +32,8 @@ from ScoreKeeper import ScoreKeeper
 from DAOObjects import DifficultyEnum
 
 class HistorianDatabase():
-	_PlayTimes = collections.namedtuple("PlayTimes", [ "player", "playtime_secs", "score_sum", "passed_notes_sum", "missed_notes_sum" ])
-	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "maxscore", "combo", "max_combo" ])
+	_PlayTimes = collections.namedtuple("PlayTimes", [ "player", "games_played", "playtime_secs", "score_sum", "passed_notes_sum", "missed_notes_sum" ])
+	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "maxscore", "combo", "max_combo" ])
 	_SongDifficulty = collections.namedtuple("SongDifficulty", [ "song_title", "song_author", "level_author", "difficulty" ])
 	_DBReadHandlers = {
 		"difficulty":		DifficultyEnum,
@@ -155,30 +155,43 @@ class HistorianDatabase():
 		starttime_local_timet = history["meta"]["songStartLocal"]
 		self.add_scorekeeper_results(player = player, starttime_local_timet = starttime_local_timet, scorekeeper = sk)
 
-	def parse_history(self, filename):
+	def mark_file_seen(self, filename):
 		stat = os.stat(filename)
 		mtime_micros = int(stat.st_mtime * 1000000)
 		filesize = stat.st_size
-		if self._file_seen(filesize, mtime_micros):
-			return
-		self._parse_history(filename)
 		self._add_file_seen(filesize, mtime_micros)
 		self._db.commit()
 
-	def _results_select(self, sql_query, result_class, parameters = tuple(), insert_fields = True):
+	def have_seen_file(self, filename):
+		stat = os.stat(filename)
+		mtime_micros = int(stat.st_mtime * 1000000)
+		filesize = stat.st_size
+		return self._file_seen(filesize, mtime_micros)
+
+	def parse_history(self, filename):
+		if self.have_seen_file(filename):
+			return
+		self._parse_history(filename)
+		self.mark_file_seen(filename)
+
+	def _results_select(self, sql_query, result_class, parameters = tuple(), insert_fields = True, process_fields = True):
 		if insert_fields:
 			fields = ", ".join(result_class._fields)
 			sql_query = sql_query % (fields)
 		results = [ list(row) for row in self._cursor.execute(sql_query, parameters).fetchall() ]
-		for (i, fieldname) in enumerate(result_class._fields):
-			handler = self._DBReadHandlers.get(fieldname)
-			if handler is not None:
-				for result in results:
-					result[i] = handler(result[i])
+		if process_fields:
+			for (i, fieldname) in enumerate(result_class._fields):
+				handler = self._DBReadHandlers.get(fieldname)
+				if handler is not None:
+					for result in results:
+						result[i] = handler(result[i])
 		return [ result_class(*result) for result in results ]
 
 	def recent_results(self, count = 10):
 		return self._results_select("SELECT %s FROM results ORDER BY endtime DESC LIMIT ?;", parameters = (count, ), result_class = self._PlayResult)
+
+	def get_last_game(self, player):
+		return self._results_select("SELECT %s FROM results WHERE player = ? ORDER BY endtime DESC LIMIT 1;", parameters = (player, ), result_class = self._PlayResult, process_fields = False)
 
 	def all_song_difficulties(self):
 		return self._results_select("SELECT DISTINCT %s FROM results ORDER BY song_author ASC, song_title ASC, difficulty DESC;", result_class = self._SongDifficulty)
@@ -186,13 +199,50 @@ class HistorianDatabase():
 	def get_highscores(self, song_difficulty, count = 10):
 		return self._results_select("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY score DESC LIMIT ?;", parameters = (song_difficulty.song_title, song_difficulty.song_author, song_difficulty.level_author, song_difficulty.difficulty, count), result_class = self._PlayResult)
 
-	def get_playtimes_at(self, date):
-		datestr = date.strftime("%Y-%m-%d")
-		return self._results_select("SELECT player, SUM(playtime), SUM(score), SUM(passed_notes), SUM(missed_notes) AS playtime_secs FROM results WHERE local_ts LIKE '%s%%' GROUP BY player ORDER BY playtime_secs DESC;" % (datestr), result_class = self._PlayTimes, insert_fields = False)
+	def get_playtimes(self, date = None, player = None):
+		where = [ ]
+		parameters = [ ]
+		if date is not None:
+			date_str = date.strftime("%Y-%m-%d")
+			where.append("local_ts LIKE '%s%%'" % (date_str))
+		if player is not None:
+			where.append("player = ?")
+			parameters.append(player)
 
-	def get_playtimes_today(self):
-		return self.get_playtimes_at(datetime.date.today())
+		if len(where) == 0:
+			where = ""
+		else:
+			where = "WHERE %s" % (" AND ".join("(%s)" % (clause) for clause in where))
+		return self._results_select("SELECT player, COUNT(score), SUM(playtime), SUM(score), SUM(passed_notes), SUM(missed_notes) AS playtime_secs FROM results %s GROUP BY player ORDER BY playtime_secs DESC;" % (where), parameters = parameters, result_class = self._PlayTimes, insert_fields = False)
+
+	def get_playtimes_today(self, player = None):
+		return self.get_playtimes(date = datetime.date.today(), player = player)
 
 	def get_last_games(self, time_duration_secs = 3600 * 3, count = 10):
 		starttime_after = time.time() - time_duration_secs
 		return self._results_select("SELECT %s FROM results WHERE starttime_local > ? ORDER BY endtime DESC LIMIT ?;", parameters = (starttime_after, count), result_class = self._PlayResult)
+
+	def get_player_info(self, player):
+		def _first(rlist):
+			if len(rlist) == 0:
+				return None
+			else:
+				return dict(rlist[0]._asdict())
+		result = {
+			"today":	_first(self.get_playtimes_today(player = player)),
+			"alltime":	_first(self.get_playtimes(player = player)),
+			"lastgame":	_first(self.get_last_game(player = player)),
+		}
+		return result
+
+	def get_recent_players(self, time_duration_secs = 86400):
+		starttime_after = time.time() - time_duration_secs
+		recent_players = [ row[0] for row in self._cursor.execute("SELECT DISTINCT player FROM results WHERE starttime_local > ?", (starttime_after, )).fetchall() ]
+		return recent_players
+
+
+if __name__ == "__main__":
+	from Configuration import Configuration
+	config = Configuration("configuration.json")
+	db = HistorianDatabase(config)
+	print(db.get_recent_players())

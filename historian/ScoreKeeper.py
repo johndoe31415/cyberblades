@@ -52,7 +52,8 @@ class _SaberStatistic():
 		}
 
 class ScoreKeeper():
-	def __init__(self, advanced = False):
+	def __init__(self, player_name = None, advanced = False):
+		self._player_name = player_name
 		self._data = None
 		self._advanced = advanced
 		self._pause_begin = None
@@ -94,6 +95,7 @@ class ScoreKeeper():
 			self._data["performance"] = self._get_performance(event)
 		elif etype == "songStart":
 			self._data = {
+				"player":	self._player_name,
 				"meta": {
 					"start_ts":			event["time"],
 					"song_author":		event["status"]["beatmap"]["songAuthorName"],
@@ -130,8 +132,9 @@ class ScoreKeeper():
 			pause_duration = event["time"] - self._pause_begin
 			self._pause_begin = None
 			self._total_pause_duration += pause_duration
-#		else:
-#			print(etype)
+		else:
+			return False
+		return True
 
 	def process_all(self, events):
 		for event in events:

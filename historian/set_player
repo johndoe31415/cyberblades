@@ -37,8 +37,8 @@ conn = socket.socket(family = socket.AF_UNIX, type = socket.SOCK_STREAM, proto =
 conn.connect(sockfile)
 
 cmd = {
-	"cmd": "set",
-	"current_player": args.playername,
+	"cmd": "set_player",
+	"player": args.playername,
 }
 cmd_str = (json.dumps(cmd) + "\n").encode("ascii")
 conn.send(cmd_str)

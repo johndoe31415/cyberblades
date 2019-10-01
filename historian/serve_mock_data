@@ -33,6 +33,7 @@ parser.add_argument("-s", "--speed", metavar = "factor", type = float, default =
 parser.add_argument("-m", "--max-delay", metavar = "seconds", type = float, default = 1, help = "Maximum delay in seconds inbetween messages. Defaults to %(default).1f.")
 parser.add_argument("-p", "--port", metavar = "port", type = int, default = 6557, help = "Port at which to listen. Defaults to %(default)d")
 parser.add_argument("-g", "--global-listen", action = "store_true", help = "Bind globally, i.e., make the server available for external connections. By default, only localhost is bound.")
+parser.add_argument("-d", "--disconnect", action = "store_true", help = "Disconnect after serving data (only if no re-serving is in effect).")
 parser.add_argument("-n", "--no-re-serve", action = "store_true", help = "Serve only once, do not re-serve the same mock data after the re-serving delay has passed.")
 parser.add_argument("-r", "--re-serve-delay", metavar = "seconds", type = float, default = 5, help = "When sending all data is finished, wait this amount of seconds and then re-serve all data. Defaults to %(default).1f seconds.")
 parser.add_argument("mockfile", metavar = "mockfile", type = str, help = "JSON mock file to replay.")
@@ -42,6 +43,7 @@ with open(args.mockfile) as f:
 	mockfile = json.load(f)
 
 async def serve_method(websocket, path):
+	mock_t0 = mockfile["events"][0]["msg"]["time"]
 	if path == "/socket":
 		while True:
 			t0 = time.time()
@@ -56,7 +58,11 @@ async def serve_method(websocket, path):
 						t0 -= delay - args.max_delay
 						delay = args.max_delay
 					await asyncio.sleep(delay)
-				await websocket.send(json.dumps(event["msg"]))
+
+				msg = dict(event["msg"])
+				new_time = msg["time"] - mock_t0 + round(t0 * 1000)
+				msg["time"] = new_time
+				await websocket.send(json.dumps(msg))
 				if (now - last_print_ts) > 1:
 					print("%d / %d: %.1f%%" % (eid, len(mockfile["events"]), eid / len(mockfile["events"]) * 100))
 					last_print_ts = now
@@ -65,9 +71,12 @@ async def serve_method(websocket, path):
 				break
 			else:
 				await asyncio.sleep(args.re_serve_delay)
-		print("Finished.")
-		while True:
-			await asyncio.sleep(1)
+		if not args.disconnect:
+			print("Finished, now keeping connection alive.")
+			while True:
+				await asyncio.sleep(1)
+		else:
+			print("Finished, disconnecting.")
 
 
 loop = asyncio.get_event_loop()

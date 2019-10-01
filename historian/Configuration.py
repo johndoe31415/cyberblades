@@ -39,4 +39,7 @@ class Configuration():
 		return key in self._config
 
 	def __getitem__(self, key):
-		return self._subs(self._config[key])
+		value = self._config[key]
+		if isinstance(value, str):
+			value = self._subs(value)
+		return value

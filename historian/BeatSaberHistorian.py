@@ -28,103 +28,56 @@ import datetime
 import contextlib
 import gzip
 from ScoreKeeper import ScoreKeeper
+from HistorianDatabase import HistorianDatabase
+from LocalCommunicationServer import LocalCommunicationServer
 
 class BeatSaberHistorian():
 	def __init__(self, config, args):
 		self._config = config
 		self._args = args
 		self._current_player = None
-		self._current_data = None
+		self._current_songdata = None
 		self._connected_to_beatsaber = False
 		self._current_score = None
 		self._last_score = None
 		self._score_change = asyncio.Event()
+		self._db = HistorianDatabase(self._config)
+		self._local_server = LocalCommunicationServer(self)
 
-#	def _subs(self, text):
-#		text = text.replace("${player}", self._current_player or "unknown_player")
-#		return self._config.subs(text)
+	@property
+	def config(self):
+		return self._config
 
-	def _get_status_dict(self):
-		return {
-			"connection": {
-				"connected_to_beatsaber":	self._connected_to_beatsaber,
-				"current_player":			self._current_player,
-				"in_game":					self._current_data is not None,
-			},
-			"current_game":					self._current_score.to_dict() if (self._current_score is not None) else None,
-			"last_game":					self._last_score.to_dict() if (self._last_score is not None) else None,
-		}
+	@property
+	def current_player(self):
+		return self._current_player
 
-	def _local_command_status(self, query):
-		return {
-			"msgtype":	"response",
-			"success":	True,
-			"data": self._get_status_dict(),
-		}
+	@current_player.setter
+	def current_player(self, new_player):
+		if new_player != self._current_player:
+			self._current_player = new_player
+			print("Player changed: %s" % (new_player))
+			self._local_server.change_event()
 
-	def _local_command_set(self, query):
-		if ("current_player" in query) and (isinstance(query["current_player"], (type(None), str))):
-			self._current_player = query["current_player"]
-			print("Current player is now %s" % (self._current_player))
-		return self._local_command_status(query)
+	@property
+	def connected_to_beatsaber(self):
+		return self._connected_to_beatsaber
 
-	def _process_local_command(self, query):
-		if not isinstance(query, dict):
-			return {
-				"success":	False,
-				"data":		"Invalid data type provided, expected dict.",
-			}
+	@property
+	def in_game(self):
+		return self._current_songdata is not None
 
-		cmd = query.get("cmd", "")
-		handler = getattr(self, "_local_command_%s" % (cmd), None)
-		if handler is not None:
-			return handler(query)
-		else:
-			return {
-				"msgtype":	"response",
-				"success":	False,
-				"data":		"No such command: \"%s\"" % (cmd),
-			}
+	@property
+	def current_score(self):
+		return self._current_score
 
-	async def _local_server_commands(self, reader, writer):
-		try:
-			while not writer.is_closing():
-				msg = await reader.readline()
-				if len(msg) == 0:
-					break
-				try:
-					msg = json.loads(msg)
-					response = self._process_local_command(msg)
-					writer.write((json.dumps(response) + "\n").encode("ascii"))
-				except json.decoder.JSONDecodeError as e:
-					writer.write((json.dumps({
-						"msgtype":	"response",
-						"success":	False,
-						"data":		"Could not decode command: %s" % (str(e)),
-					}) + "\n").encode("ascii"))
-		except (ConnectionResetError, BrokenPipeError) as e:
-			print("Local UNIX server caught exception:", e)
-			writer.close()
+	@property
+	def last_score(self):
+		return self._last_score
 
-	async def _local_server_events(self, reader, writer):
-		self._score_change.set()
-		while not writer.is_closing():
-			await self._score_change.wait()
-			self._score_change.clear()
-			writer.write((json.dumps({
-				"msgtype":	"event",
-				"status": self._get_status_dict(),
-			}) + "\n").encode("ascii"))
-
-	async def _local_server_tasks(self, reader, writer):
-		await asyncio.gather(
-			self._local_server_commands(reader, writer),
-			self._local_server_events(reader, writer),
-		)
-		writer.close()
-
-	async def _create_local_server(self):
-		await asyncio.start_unix_server(self._local_server_tasks, path = self._config["unix_socket"])
+	@property
+	def db(self):
+		return self._db
 
 	def _finish_song(self):
 		now = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -132,32 +85,36 @@ class BeatSaberHistorian():
 		with contextlib.suppress(FileExistsError):
 			os.makedirs(os.path.dirname(destination_filename))
 		with gzip.open(destination_filename, "wt") as f:
-			json.dump(self._current_data, f)
+			json.dump(self._current_songdata, f)
 			f.write("\n")
-		self._current_data = None
+		self._db.add_scorekeeper_results(self._current_songdata["meta"]["player"], self._current_songdata["meta"]["songStartLocal"], self._current_score)
+		self._db.mark_file_seen(destination_filename)
+		self._current_songdata = None
 
 	def _handle_beatsaber_event(self, event):
 		if event["event"] == "songStart":
-			self._current_score = ScoreKeeper()
-			self._current_data = {
+			self._current_score = ScoreKeeper(player_name = self._current_player, advanced = True)
+			self._current_songdata = {
 				"meta": {
 					"songStartLocal":	time.time(),
 					"player":			self._current_player,
 				},
 				"events":		[ ],
 			}
-			self._current_data["events"].append(event)
+			self._current_songdata["events"].append(event)
 			print("Player %s started %s - %s (%s)" % (self._current_player, event["status"]["beatmap"]["songAuthorName"], event["status"]["beatmap"]["songName"], event["status"]["beatmap"]["difficulty"]))
-		elif (self._current_data is not None) and ((event["event"] == "finished") or (event["event"] == "failed")):
-			self._current_data["events"].append(event)
+
+		if self._current_score is not None:
+			if self._current_score.process(event):
+				self._local_server.change_event()
+
+		if (self._current_songdata is not None) and ((event["event"] == "finished") or (event["event"] == "failed")):
+			self._current_songdata["events"].append(event)
+			self._finish_song()
 			self._last_score = self._current_score
 			self._current_score = None
-			self._finish_song()
-		elif self._current_data is not None:
-			self._current_data["events"].append(event)
-		if self._current_score is not None:
-			self._current_score.process(event)
-			self._score_change.set()
+		elif self._current_songdata is not None:
+			self._current_songdata["events"].append(event)
 
 	async def _connect_beatsaber(self):
 		uri = self._config["beatsaber_websocket_uri"]
@@ -170,12 +127,13 @@ class BeatSaberHistorian():
 						msg = await websocket.recv()
 						msg = json.loads(msg)
 						self._handle_beatsaber_event(msg)
-					if self._current_data is not None:
-						self._current_data = None
-						print("Disconnected from BeatSaber; warning: data of current song is lost.")
+			except (OSError, ConnectionRefusedError, websockets.exceptions.ConnectionClosed) as e:
+				if self._connected_to_beatsaber:
+					if self._current_songdata is not None:
+						print("Disconnected from BeatSaber: %s - %s; warning: data of current song is lost." % (e.__class__.__name__, str(e)))
 					else:
-						print("Disconnected from BeatSaber.")
-			except (OSError, ConnectionRefusedError, websockets.exceptions.ConnectionClosed):
+						print("Disconnected from BeatSaber: %s - %s" % (e.__class__.__name__, str(e)))
+				self._current_songdata = None
 				self._connected_to_beatsaber = False
 				await asyncio.sleep(1)
 
@@ -186,7 +144,7 @@ class BeatSaberHistorian():
 
 	def start(self):
 		loop = asyncio.get_event_loop()
-		loop.create_task(self._create_local_server())
+		loop.create_task(self._local_server.create_server())
 		loop.create_task(self._connect_beatsaber())
 		if self._config.has("heartrate_monitor"):
 			loop.create_task(self._connect_heartrate_monitor())

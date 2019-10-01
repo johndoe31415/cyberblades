@@ -34,7 +34,7 @@ args = parser.parse_args(sys.argv[1:])
 config = Configuration(args.config_file)
 db = HistorianDatabase(config)
 
-for (dirname, subdirs, files) in os.walk("history"):
+for (dirname, subdirs, files) in os.walk(config["history_directory"]):
 	for filename in files:
 		if filename.startswith("."):
 			continue
@@ -44,10 +44,11 @@ for (dirname, subdirs, files) in os.walk("history"):
 		db.parse_history(full_filename)
 
 def format_result(result, show_song = False):
+	percentage = (result.score / result.maxscore * 100) if (result.maxscore != 0) else 0
 	if not show_song:
-		return "%-15s %6d %5.1f%% %2s %4d %-5s %s" % (result.player, result.score, result.score / result.maxscore * 100, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"))
+		return "%-15s %6d %5.1f%% %2s %4d %-5s %s" % (result.player, result.score, percentage, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"))
 	else:
-		return "%-15s %6d %5.1f%% %2s %4d %-5s %-20s %s" % (result.player, result.score, result.score / result.maxscore * 100, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"), result.song_title)
+		return "%-15s %6d %5.1f%% %2s %4d %-5s %-20s %s" % (result.player, result.score, percentage, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"), result.song_title)
 
 
 for song_difficulty in db.all_song_difficulties():
@@ -73,3 +74,5 @@ else:
 	print("Last games:")
 	for last_game in last_games:
 		print(format_result(last_game, show_song = True))
+
+print(db.get_player_info("joe"))
