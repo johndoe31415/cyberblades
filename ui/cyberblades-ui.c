@@ -28,9 +28,7 @@
 #include "display_fb.h"
 #include "cairo.h"
 #include "cairoglue.h"
-#ifdef BUILD_WITH_SDL
 #include "display_sdl.h"
-#endif
 #include "historian.h"
 #include "tools.h"
 #include "isleep.h"
@@ -84,6 +82,7 @@ static void parse_player_stats(struct player_stats_t *stats, struct jsondom_t *s
 
 static void event_handle_historian_status(struct server_state_t *server_state, struct jsondom_t *json) {
 	struct jsondom_t *json_connection = jsondom_get_dict_dict(json, "connection");
+	struct jsondom_t *current_game = jsondom_get_dict_dict(json, "current_game");
 	if (json_connection) {
 		if (strncpycmp(server_state->player.name, jsondom_get_dict_str(json_connection, "current_player"), sizeof(server_state->player.name))) {
 			/* Player name has changed */
@@ -91,7 +90,8 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 		}
 		server_state->connected_to_beatsaber = jsondom_get_dict_bool(json_connection, "connected_to_beatsaber");
 
-		if (jsondom_get_dict_bool(json_connection, "in_game")) {
+		bool in_game = current_game != NULL;
+		if (in_game) {
 			server_state->ui_screen = GAME_SCREEN;
 			server_state->screen_shown_at_ts = now();
 		} else {
@@ -100,7 +100,7 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 		}
 	}
 
-	parse_game_info(&server_state->current_song, jsondom_get_dict_dict(json, "current_game"));
+	parse_game_info(&server_state->current_song, current_game);
 	isleep_interrupt(&server_state->isleep);
 }
 
@@ -124,6 +124,7 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 		exit(EXIT_SUCCESS);
 	} else if (event_type == EVENT_KEYPRESS) {
 		struct ui_event_keypress_t *event = (struct ui_event_keypress_t*)vevent;
+
 		printf("%p\n", event);
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
@@ -168,7 +169,6 @@ int main(int argc, char **argv) {
 	if (argc == 2) {
 		const char *filename = argv[1];
 		display = display_init(&display_fb_calltable, (void*)filename);
-#ifdef BUILD_WITH_SDL
 	} else {
 		struct display_sdl_init_t init_params = {
 //			.width = 320, .height = 240,
@@ -176,7 +176,6 @@ int main(int argc, char **argv) {
 		};
 		display = display_init(&display_sdl_calltable, &init_params);
 		display_sdl_register_events(display, event_callback, &server_state);
-#endif
 	}
 	register_signal_handler(event_callback, &server_state);
 

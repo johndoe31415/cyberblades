@@ -33,14 +33,9 @@ enum ui_eventtype_t {
 	EVENT_HISTORIAN_STATECHG
 };
 
-enum key_t {
-	BUTTON_UP,
-	BUTTON_MIDDLE,
-	BUTTON_DOWN,
-};
-
 struct ui_event_keypress_t {
-	enum key_t key;
+	SDL_Keycode key;
+	uint16_t mod;
 };
 
 struct historian_t;

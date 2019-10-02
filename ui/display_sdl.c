@@ -51,36 +51,45 @@ static void display_sdl_fill(struct display_t *display, uint32_t rgb) {
 	}
 }
 
+
+
+
 static void display_sdl_handle_event(struct display_t *display, SDL_Event *event) {
 	if (!display->hmi_events.event_callback) {
 		/* We cannot callback anyways, discard event */
 		return;
 	}
 
-	//struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
 	if (event->type == SDL_WINDOWEVENT) {
 		if (event->window.event == SDL_WINDOWEVENT_CLOSE) {
 			display->hmi_events.event_callback(EVENT_QUIT, NULL, display->hmi_events.callback_ctx);
 		}
 	} else if (event->type == SDL_KEYDOWN) {
-		if (event->key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+		struct ui_event_keypress_t ui_event = {
+			.key = event->key.keysym.sym,
+			.mod = event->key.keysym.mod,
+		};
+
+		if (((ui_event.mod & KMOD_LCTRL) == KMOD_LCTRL) && (ui_event.key == SDLK_ESCAPE)) {
+			/* Ctrl-Escape */
 			display->hmi_events.event_callback(EVENT_QUIT, NULL, display->hmi_events.callback_ctx);
-		} else if (event->key.keysym.scancode == SDL_SCANCODE_UP) {
-			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_UP }), display->hmi_events.callback_ctx);
-		} else if (event->key.keysym.scancode == SDL_SCANCODE_DOWN) {
-			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_DOWN }), display->hmi_events.callback_ctx);
-		} else if (event->key.keysym.scancode == SDL_SCANCODE_RETURN) {
-			display->hmi_events.event_callback(EVENT_KEYPRESS, &((struct ui_event_keypress_t){ .key = BUTTON_MIDDLE }), display->hmi_events.callback_ctx);
+		}
+
 #ifdef DEVELOPMENT
-		} else if (event->key.keysym.scancode == SDL_SCANCODE_F12) {
+		if (ui_event.key == SDLK_F12) {
 			/* Toggle fullscreen mode */
 			static bool is_fullscreen = false;
 			struct display_sdl_ctx_t *ctx = (struct display_sdl_ctx_t*)display->drv_context;
 			SDL_SetWindowFullscreen(ctx->window, is_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 			//SDL_SetWindowFullscreen(ctx->window, is_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
 			is_fullscreen = !is_fullscreen;
-#endif
+		} else if (ui_event.key == SDLK_ESCAPE) {
+			display->hmi_events.event_callback(EVENT_QUIT, NULL, display->hmi_events.callback_ctx);
 		}
+#endif
+
+		display->hmi_events.event_callback(EVENT_KEYPRESS, &ui_event, display->hmi_events.callback_ctx);
+
 	} else {
 		//printf("Unhandled event type 0x%x\n", event->type);
 	}

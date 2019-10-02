@@ -7,20 +7,22 @@ DEVELOPMENT := 0
 else
 DEVELOPMENT := 1
 endif
-BUILD_WITH_SDL := 1
 
 CFLAGS := -O3 -std=c11 -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
 CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread
+
+# libcairo
 CFLAGS += `pkg-config --cflags cairo`
 LDFLAGS := `pkg-config --libs cairo` -lfontconfig
+
+# JSON parser support
 CFLAGS += `pkg-config --cflags yajl`
 LDFLAGS += `pkg-config --libs yajl`
 
-ifeq ($(BUILD_WITH_SDL),1)
-CFLAGS += -DBUILD_WITH_SDL `pkg-config --cflags sdl2`
+# SDLv2 support
+CFLAGS += `pkg-config --cflags sdl2`
 LDFLAGS += `pkg-config --libs sdl2`
 #CFLAGS += -DCAIRO_DEBUG
-endif
 
 ifeq ($(DEVELOPMENT),1)
 CFLAGS += -ggdb3 
@@ -42,11 +44,8 @@ OBJS := \
 	signals.o \
 	renderer_fullhd.o \
 	llist.o \
-	cprintf.o
-
-ifeq ($(BUILD_WITH_SDL),1)
-OBJS +=	display_sdl.o
-endif
+	cprintf.o \
+	display_sdl.o
 
 BINARIES := cyberblades-ui cairo-fonttest
 

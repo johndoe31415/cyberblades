@@ -39,7 +39,6 @@ class BeatSaberHistorian():
 		self._current_songdata = None
 		self._connected_to_beatsaber = False
 		self._current_score = None
-		self._last_score = None
 		self._score_change = asyncio.Event()
 		self._db = HistorianDatabase(self._config)
 		self._local_server = LocalCommunicationServer(self)
@@ -64,16 +63,8 @@ class BeatSaberHistorian():
 		return self._connected_to_beatsaber
 
 	@property
-	def in_game(self):
-		return self._current_songdata is not None
-
-	@property
 	def current_score(self):
 		return self._current_score
-
-	@property
-	def last_score(self):
-		return self._last_score
 
 	@property
 	def db(self):
@@ -112,7 +103,6 @@ class BeatSaberHistorian():
 
 		if (self._current_songdata is not None) and ((event["event"] == "finished") or (event["event"] == "failed")):
 			self._finish_song()
-			self._last_score = self._current_score
 			self._current_score = None
 			self._local_server.change_event()
 
