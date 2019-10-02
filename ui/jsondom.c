@@ -28,7 +28,8 @@
 #include <yajl_parse.h>
 #include "jsondom.h"
 
-#define jsondom_debug(msg, ...)			fprintf(stderr, msg, ##__VA_ARGS__)
+//#define jsondom_debug(msg, ...)			fprintf(stderr, msg, ##__VA_ARGS__)
+#define jsondom_debug(msg, ...)
 
 static struct jsondom_t *jsondom_new(enum jsondom_type_t elementtype, struct jsondom_t *parent);
 
@@ -67,6 +68,7 @@ static struct jsondom_t **array_add_element(struct jsondom_array_t *array) {
 
 static int yajl_add_primitive(struct yajl_parsing_ctx_t *ctx, struct jsondom_t *new_primitive) {
 	if (!new_primitive) {
+		fprintf(stderr, "new_primitive is NULL\n");
 		return 0;
 	}
 	if ((ctx->next == NULL) && (ctx->current) && (ctx->current->elementtype == JD_ARRAY)) {
@@ -172,10 +174,11 @@ static int yajl_parse_start_map(void *vctx) {
 	jsondom_debug("parse: start dict\n");
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_DICT, ctx->current);
+	int success = yajl_add_primitive(ctx, new_element);
 	if (new_element) {
 		ctx->current = new_element;
 	}
-	return yajl_add_primitive(ctx, new_element);
+	return success;
 }
 
 static int yajl_parse_end_map(void *vctx) {
