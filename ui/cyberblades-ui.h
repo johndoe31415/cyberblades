@@ -66,10 +66,19 @@ struct song_info_t {
 	struct performance_info_t performance;
 };
 
+struct player_stats_t {
+	unsigned int games_played;
+	unsigned int playtime_secs;
+	unsigned int passed_notes_sum;
+	unsigned int missed_notes_sum;
+	unsigned int score_sum;
+	unsigned int max_score_sum;
+};
+
 struct player_info_t {
 	char name[MAX_TEXT_WIDTH];
-	unsigned int playtime_today_secs;
-	unsigned int total_score_today;
+	struct player_stats_t today;
+	struct player_stats_t alltime;
 };
 
 struct server_state_t {

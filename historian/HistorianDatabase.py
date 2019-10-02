@@ -32,8 +32,8 @@ from ScoreKeeper import ScoreKeeper
 from DAOObjects import DifficultyEnum
 
 class HistorianDatabase():
-	_PlayTimes = collections.namedtuple("PlayTimes", [ "player", "games_played", "playtime_secs", "score_sum", "passed_notes_sum", "missed_notes_sum" ])
-	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "maxscore", "combo", "max_combo" ])
+	_PlayTimes = collections.namedtuple("PlayTimes", [ "player", "games_played", "playtime_secs", "score_sum", "max_score_sum", "passed_notes_sum", "missed_notes_sum" ])
+	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "max_score", "combo", "max_combo" ])
 	_SongDifficulty = collections.namedtuple("SongDifficulty", [ "song_title", "song_author", "level_author", "difficulty" ])
 	_DBReadHandlers = {
 		"difficulty":		DifficultyEnum,
@@ -65,7 +65,7 @@ class HistorianDatabase():
 				verdict varchar NOT NULL,
 				rank varchar NOT NULL,
 				score integer NOT NULL,
-				maxscore integer NOT NULL,
+				max_score integer NOT NULL,
 				combo integer NOT NULL,
 				max_combo integer NOT NULL,
 				passed_bombs integer NOT NULL,
@@ -132,7 +132,7 @@ class HistorianDatabase():
 				"verdict":			skr["final"]["verdict"],
 				"rank":				skr["final"]["rank"],
 				"score":			skr["final"]["score"],
-				"maxscore":			skr["final"]["max_score"],
+				"max_score":		skr["final"]["max_score"],
 				"combo":			skr["final"]["combo"],
 				"max_combo":		skr["final"]["max_combo"],
 				"passed_bombs":		skr["final"]["passed_bombs"],
@@ -151,9 +151,12 @@ class HistorianDatabase():
 				history = json.load(f)
 		sk = ScoreKeeper(advanced = True)
 		sk.process_all(history["events"])
-		player = history["meta"]["player"]
-		starttime_local_timet = history["meta"]["songStartLocal"]
-		self.add_scorekeeper_results(player = player, starttime_local_timet = starttime_local_timet, scorekeeper = sk)
+		if sk.gamehash is None:
+			print("No gamehash: %s" % (filename))
+		else:
+			player = history["meta"]["player"]
+			starttime_local_timet = history["meta"]["songStartLocal"]
+			self.add_scorekeeper_results(player = player, starttime_local_timet = starttime_local_timet, scorekeeper = sk)
 
 	def mark_file_seen(self, filename):
 		stat = os.stat(filename)
@@ -213,7 +216,7 @@ class HistorianDatabase():
 			where = ""
 		else:
 			where = "WHERE %s" % (" AND ".join("(%s)" % (clause) for clause in where))
-		return self._results_select("SELECT player, COUNT(score), SUM(playtime), SUM(score), SUM(passed_notes), SUM(missed_notes) AS playtime_secs FROM results %s GROUP BY player ORDER BY playtime_secs DESC;" % (where), parameters = parameters, result_class = self._PlayTimes, insert_fields = False)
+		return self._results_select("SELECT player, COUNT(score), SUM(playtime), SUM(score), SUM(max_score), SUM(passed_notes), SUM(missed_notes) AS playtime_secs FROM results %s GROUP BY player ORDER BY playtime_secs DESC;" % (where), parameters = parameters, result_class = self._PlayTimes, insert_fields = False)
 
 	def get_playtimes_today(self, player = None):
 		return self.get_playtimes(date = datetime.date.today(), player = player)

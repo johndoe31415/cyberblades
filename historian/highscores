@@ -43,18 +43,22 @@ for (dirname, subdirs, files) in os.walk(config["history_directory"]):
 		full_filename = dirname + "/" + filename
 		db.parse_history(full_filename)
 
-def format_result(result, show_song = False):
-	percentage = (result.score / result.maxscore * 100) if (result.maxscore != 0) else 0
+def format_result(result, ref_score = 0, show_song = False):
+	percentage = (result.score / result.max_score * 100) if (result.max_score != 0) else 0
+	ref_percentage = (result.score / ref_score * 100) if (ref_score != 0) else 0
 	if not show_song:
-		return "%-15s %6d %5.1f%% %2s %4d %-5s %s" % (result.player, result.score, percentage, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"))
+		return "%-15s %6d %5.1f%% %5.1f%% %2s %4d %-5s %s" % (result.player, result.score, percentage, ref_percentage, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"))
 	else:
-		return "%-15s %6d %5.1f%% %2s %4d %-5s %-20s %s" % (result.player, result.score, percentage, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"), result.song_title)
+		return "%-15s %6d %5.1f%% %5.1f%% %2s %4d %-5s %-20s %s" % (result.player, result.score, percentage, ref_percentage, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"), result.song_title)
 
 
 for song_difficulty in db.all_song_difficulties():
+	ref_score = None
 	print("%s - %s (%s)" % (song_difficulty.song_author, song_difficulty.song_title, song_difficulty.difficulty.name))
 	for (number, entry) in enumerate(db.get_highscores(song_difficulty), 1):
-		print("%2d) %s" % (number, format_result(entry)))
+		if ref_score is None:
+			ref_score = entry.score
+		print("%2d) %s" % (number, format_result(entry, ref_score)))
 	print()
 
 playtimes_today = db.get_playtimes_today()
@@ -75,4 +79,4 @@ else:
 	for last_game in last_games:
 		print(format_result(last_game, show_song = True))
 
-print(db.get_player_info("joe"))
+#print(db.get_player_info("joe"))

@@ -101,20 +101,20 @@ class BeatSaberHistorian():
 				},
 				"events":		[ ],
 			}
-			self._current_songdata["events"].append(event)
 			print("Player %s started %s - %s (%s)" % (self._current_player, event["status"]["beatmap"]["songAuthorName"], event["status"]["beatmap"]["songName"], event["status"]["beatmap"]["difficulty"]))
+
+		if self._current_songdata is not None:
+			self._current_songdata["events"].append(event)
 
 		if self._current_score is not None:
 			if self._current_score.process(event):
 				self._local_server.change_event()
 
 		if (self._current_songdata is not None) and ((event["event"] == "finished") or (event["event"] == "failed")):
-			self._current_songdata["events"].append(event)
 			self._finish_song()
 			self._last_score = self._current_score
 			self._current_score = None
-		elif self._current_songdata is not None:
-			self._current_songdata["events"].append(event)
+			self._local_server.change_event()
 
 	async def _connect_beatsaber(self):
 		uri = self._config["beatsaber_websocket_uri"]

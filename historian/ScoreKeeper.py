@@ -92,7 +92,10 @@ class ScoreKeeper():
 	def process(self, event):
 		etype = event["event"]
 		if etype == "scoreChanged":
-			self._data["performance"] = self._get_performance(event)
+			if self._data is None:
+				print("Warning: Score changed without songStart event")
+			else:
+				self._data["performance"] = self._get_performance(event)
 		elif etype == "songStart":
 			self._data = {
 				"player":	self._player_name,

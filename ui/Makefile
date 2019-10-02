@@ -9,7 +9,7 @@ DEVELOPMENT := 1
 endif
 BUILD_WITH_SDL := 1
 
-CFLAGS := -O3 -std=c11 -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500
+CFLAGS := -O3 -std=c11 -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
 CFLAGS += -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread
 CFLAGS += `pkg-config --cflags cairo`
 LDFLAGS := `pkg-config --libs cairo` -lfontconfig
@@ -41,7 +41,8 @@ OBJS := \
 	isleep.o \
 	signals.o \
 	renderer_fullhd.o \
-	llist.o
+	llist.o \
+	cprintf.o
 
 ifeq ($(BUILD_WITH_SDL),1)
 OBJS +=	display_sdl.o

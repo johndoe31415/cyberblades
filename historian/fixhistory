@@ -22,9 +22,12 @@
 import sys
 import json
 import gzip
+import os
+import contextlib
 from FriendlyArgumentParser import FriendlyArgumentParser
 
 parser = FriendlyArgumentParser(description = "Beat Saber Historian, fixes up JSON files.")
+parser.add_argument("--fix-duplicate", action = "store_true", help = "Fix duplicate events.")
 parser.add_argument("-p", "--player", metavar = "playername", type = str, help = "When no player was set, change the player name to this.")
 parser.add_argument("-c", "--config-file", metavar = "filename", type = str, default = "configuration.json", help = "Specifies JSON config file to use. Defaults to %(default)s.")
 parser.add_argument("-v", "--verbose", action = "count", default = 0, help = "Increases verbosity. Can be specified multiple times to increase.")
@@ -47,9 +50,31 @@ for filename in args.jsonfile:
 			 history["meta"]["player"] = args.player
 			 print("%s: Player set to \"%s\"" % (filename, args.player))
 
-	if filename.endswith(".gz"):
-		with gzip.open(filename, "wt") as f:
-			json.dump(history, f)
-	else:
-		with open(filename, "w") as f:
-			json.dump(history, f)
+	unique_events = [ ]
+	last_event = None
+	for event in history["events"]:
+		discard = False
+
+		if last_event == event:
+			if args.verbose >= 1:
+				print("%s: Non-unique event detected: %s at %d" % (filename, event["event"], event["time"]))
+			if args.fix_duplicate and (event["event"] == "songStart"):
+				print("%s: Non-unique event discarded: %s at %d" % (filename, event["event"], event["time"]))
+				discard = True
+		if not discard:
+			unique_events.append(event)
+		last_event = event
+	if args.fix_duplicate:
+		history["events"] = unique_events
+
+	try:
+		if filename.endswith(".gz"):
+			with gzip.open(filename + "_", "wt") as f:
+				json.dump(history, f)
+		else:
+			with open(filename + "_", "w") as f:
+				json.dump(history, f)
+		os.rename(filename + "_", filename)
+	finally:
+		with contextlib.suppress(FileNotFoundError):
+			os.unlink(filename + "_")

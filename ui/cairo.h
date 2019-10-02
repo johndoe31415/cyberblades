@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <cairo/cairo.h>
 #include "colors.h"
+#include "cprintf.h"
 
 struct cairo_swbuf_t {
 	cairo_surface_t *surface;

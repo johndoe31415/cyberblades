@@ -73,6 +73,15 @@ static void parse_game_info(struct song_info_t *song, struct jsondom_t *song_jso
 	}
 }
 
+static void parse_player_stats(struct player_stats_t *stats, struct jsondom_t *stat_json) {
+	stats->games_played = jsondom_get_dict_int(stat_json, "games_played");
+	stats->playtime_secs = jsondom_get_dict_float(stat_json, "playtime_secs");
+	stats->passed_notes_sum = jsondom_get_dict_int(stat_json, "passed_notes_sum");
+	stats->missed_notes_sum = jsondom_get_dict_int(stat_json, "missed_notes_sum");
+	stats->score_sum = jsondom_get_dict_int(stat_json, "score_sum");
+	stats->max_score_sum = jsondom_get_dict_int(stat_json, "max_score_sum");
+}
+
 static void event_handle_historian_status(struct server_state_t *server_state, struct jsondom_t *json) {
 	struct jsondom_t *json_connection = jsondom_get_dict_dict(json, "connection");
 	if (json_connection) {
@@ -85,6 +94,9 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 		if (jsondom_get_dict_bool(json_connection, "in_game")) {
 			server_state->ui_screen = GAME_SCREEN;
 			server_state->screen_shown_at_ts = now();
+		} else {
+			server_state->ui_screen = MAIN_SCREEN;
+			server_state->screen_shown_at_ts = now();
 		}
 	}
 
@@ -93,13 +105,14 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 }
 
 static void event_handle_historian_playerinfo(struct server_state_t *server_state, struct jsondom_t *json) {
-	const char *player = jsondom_get_dict_str(jsondom_get_dict_dict(json, "today"), "player");
+	jsondom_dump(json);
+	const char *player = jsondom_get_dict_str(json, "player");
 	if (!player || strcmp(player, server_state->player.name)) {
 		/* No player set or different player given */
 		return;
 	}
-	server_state->player.playtime_today_secs = jsondom_get_dict_float(jsondom_get_dict_dict(json, "today"), "playtime_secs");
-	server_state->player.total_score_today = jsondom_get_dict_int(jsondom_get_dict_dict(json, "today"), "score_sum");
+	parse_player_stats(&server_state->player.today, jsondom_get_dict_dict(json, "today"));
+	parse_player_stats(&server_state->player.alltime, jsondom_get_dict_dict(json, "alltime"));
 }
 
 static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *ctx) {

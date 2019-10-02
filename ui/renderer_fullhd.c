@@ -123,8 +123,41 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 
 	if (server_state->player.name[0]) {
 		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_SILVER), "Current player: %s", server_state->player.name);
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Playtime: %2d:%02d", server_state->player.playtime_today_secs / 60, server_state->player.playtime_today_secs % 60);
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_SILVER), "Scoresum: %.1f k", server_state->player.total_score_today / 1000.);
+
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 2, COLOR_SILVER), "Playtime");
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 2, COLOR_SILVER), "Notes Cut");
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_SILVER), "Games Played");
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 2, COLOR_SILVER), "Total Score");
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 2, COLOR_SILVER), "Percentage");
+
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 3, COLOR_SILVER), CPRINTF_FMT_TIME_SECS, server_state->player.today.playtime_secs);
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 3, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.today.passed_notes_sum - server_state->player.today.missed_notes_sum));
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 3, COLOR_SILVER), "%u", server_state->player.today.games_played);
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 3, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.today.score_sum);
+		if (server_state->player.today.max_score_sum) {
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_SILVER), "%.1f", 100. * server_state->player.today.score_sum / server_state->player.today.max_score_sum);
+		} else {
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_SILVER), "-");
+		}
+
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 4, COLOR_SILVER), CPRINTF_FMT_TIME_SECS, server_state->player.alltime.playtime_secs);
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 4, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.alltime.passed_notes_sum - server_state->player.alltime.missed_notes_sum));
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 4, COLOR_SILVER), "%u", server_state->player.alltime.games_played);
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 4, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.alltime.score_sum);
+		if (server_state->player.alltime.max_score_sum) {
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "%.1f", 100. * server_state->player.alltime.score_sum / server_state->player.alltime.max_score_sum);
+		} else {
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "-");
+		}
+//		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "Percentage");
+		/*
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Games Played " CPRINTF_FMT_TIME_SECS, server_state->player.today.playtime_secs);
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Playtime" CPRINTF_FMT_TIME_SECS, server_state->player.today.playtime_secs);
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_SILVER), "Scoresum: " CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.today.score_sum);
+
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 4, COLOR_SILVER), "Playtime: " CPRINTF_FMT_TIME_SECS, server_state->player.alltime.playtime_secs);
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 5, COLOR_SILVER), "Scoresum: " CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.alltime.score_sum);
+		*/
 	} else {
 		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_POMEGRANATE), "No player selected");
 	}
