@@ -34,7 +34,7 @@ from DAOObjects import DifficultyEnum
 class HistorianDatabase():
 	_PlayTimes = collections.namedtuple("PlayTimes", [ "player", "games_played", "playtime_secs", "score_sum", "max_score_sum", "passed_notes_sum", "missed_notes_sum" ])
 	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "max_score", "combo", "max_combo" ])
-	_SongDifficulty = collections.namedtuple("SongDifficulty", [ "song_title", "song_author", "level_author", "difficulty" ])
+	_SongKey = collections.namedtuple("SongKey", [ "song_title", "song_author", "level_author", "difficulty" ])
 	_DBReadHandlers = {
 		"difficulty":		DifficultyEnum,
 		"local_ts":			lambda x: datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%S"),
@@ -196,11 +196,15 @@ class HistorianDatabase():
 	def get_last_game(self, player):
 		return self._results_select("SELECT %s FROM results WHERE player = ? ORDER BY endtime DESC LIMIT 1;", parameters = (player, ), result_class = self._PlayResult, process_fields = False)
 
-	def all_song_difficulties(self):
-		return self._results_select("SELECT DISTINCT %s FROM results ORDER BY song_author ASC, song_title ASC, difficulty DESC;", result_class = self._SongDifficulty)
+	def all_song_keys(self):
+		return self._results_select("SELECT DISTINCT %s FROM results ORDER BY song_author ASC, song_title ASC, difficulty DESC;", result_class = self._SongKey)
 
-	def get_highscores(self, song_difficulty, count = 10):
-		return self._results_select("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY score DESC LIMIT ?;", parameters = (song_difficulty.song_title, song_difficulty.song_author, song_difficulty.level_author, song_difficulty.difficulty, count), result_class = self._PlayResult)
+	def get_highscores(self, song_key, count = 10, process_fields = True):
+		return self._results_select("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY score DESC LIMIT ?;", parameters = (song_key.song_title, song_key.song_author, song_key.level_author, song_key.difficulty, count), result_class = self._PlayResult, process_fields = process_fields)
+
+	def get_highscore_rank(self, song_key, score):
+		row = self._cursor.execute("SELECT COUNT(*) FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? AND score > ?;", (song_key.song_title, song_key.song_author, song_key.level_author, song_key.difficulty, score)).fetchone()
+		return row[0] + 1
 
 	def get_playtimes(self, date = None, player = None):
 		where = [ ]
@@ -225,17 +229,23 @@ class HistorianDatabase():
 		starttime_after = time.time() - time_duration_secs
 		return self._results_select("SELECT %s FROM results WHERE starttime_local > ? ORDER BY endtime DESC LIMIT ?;", parameters = (starttime_after, count), result_class = self._PlayResult)
 
-	def get_player_info(self, player):
+	def get_player_info(self, player, process_fields = False):
 		def _first(rlist):
 			if len(rlist) == 0:
 				return None
 			else:
 				return dict(rlist[0]._asdict())
 		result = {
-			"today":	_first(self.get_playtimes_today(player = player)),
-			"alltime":	_first(self.get_playtimes(player = player)),
-			"lastgame":	_first(self.get_last_game(player = player)),
+			"today":		_first(self.get_playtimes_today(player = player)),
+			"alltime":		_first(self.get_playtimes(player = player)),
+			"lastgame":		_first(self.get_last_game(player = player)),
 		}
+		if result["lastgame"] is not None:
+			song_key = self._SongKey(**{ key: result["lastgame"][key] for key in [ "song_author", "song_title", "level_author", "difficulty" ] })
+			result["highscore"] = [ hs._asdict() for hs in self.get_highscores(song_key, process_fields = process_fields) ]
+			result["highscore_rank"] = self.get_highscore_rank(song_key, result["lastgame"]["score"])
+		else:
+			result["highscore"] = None
 		return result
 
 	def get_recent_players(self, time_duration_secs = 86400):

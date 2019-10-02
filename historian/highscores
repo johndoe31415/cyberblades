@@ -52,10 +52,10 @@ def format_result(result, ref_score = 0, show_song = False):
 		return "%-15s %6d %5.1f%% %5.1f%% %2s %4d %-5s %-20s %s" % (result.player, result.score, percentage, ref_percentage, result.rank, result.max_combo, result.verdict, result.local_ts.strftime("%d.%m.%Y %H:%M"), result.song_title)
 
 
-for song_difficulty in db.all_song_difficulties():
+for song_key in db.all_song_keys():
 	ref_score = None
-	print("%s - %s (%s)" % (song_difficulty.song_author, song_difficulty.song_title, song_difficulty.difficulty.name))
-	for (number, entry) in enumerate(db.get_highscores(song_difficulty), 1):
+	print("%s - %s (%s)" % (song_key.song_author, song_key.song_title, song_key.difficulty.name))
+	for (number, entry) in enumerate(db.get_highscores(song_key), 1):
 		if ref_score is None:
 			ref_score = entry.score
 		print("%2d) %s" % (number, format_result(entry, ref_score)))
@@ -79,4 +79,4 @@ else:
 	for last_game in last_games:
 		print(format_result(last_game, show_song = True))
 
-#print(db.get_player_info("joe"))
+print(json.dumps(db.get_player_info("joe"), sort_keys = True, indent = 4))

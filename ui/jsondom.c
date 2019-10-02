@@ -28,6 +28,8 @@
 #include <yajl_parse.h>
 #include "jsondom.h"
 
+#define jsondom_debug(msg, ...)			fprintf(stderr, msg, ##__VA_ARGS__)
+
 static struct jsondom_t *jsondom_new(enum jsondom_type_t elementtype, struct jsondom_t *parent);
 
 struct yajl_parsing_ctx_t {
@@ -77,18 +79,24 @@ static int yajl_add_primitive(struct yajl_parsing_ctx_t *ctx, struct jsondom_t *
 		ctx->next = NULL;
 		return 1;
 	}
+
+//	fprintf(stderr, "fatal: JSON parser add primitive without next (current type %d)\n", ctx->current->elementtype);
+//	jsondom_dump(ctx->root);
+
 	jsondom_free(new_primitive);
 	return 0;
 }
 
 
 static int yajl_parse_null(void *vctx) {
+	jsondom_debug("parse: NULL\n");
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_NULLVAL, ctx->current);
 	return yajl_add_primitive(ctx, new_element);
 }
 
 static int yajl_parse_boolean(void *vctx, int boolean) {
+	jsondom_debug("parse: boolean %s\n", boolean ? "true" : "false");
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_BOOLEAN, ctx->current);
 	if (new_element) {
@@ -98,6 +106,7 @@ static int yajl_parse_boolean(void *vctx, int boolean) {
 }
 
 static int yajl_parse_double(void *vctx, double dblvalue) {
+	jsondom_debug("parse: double %f\n", dblvalue);
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_DOUBLE, ctx->current);
 	if (new_element) {
@@ -107,6 +116,7 @@ static int yajl_parse_double(void *vctx, double dblvalue) {
 }
 
 static int yajl_parse_integer(void *vctx, long long integer) {
+	jsondom_debug("parse: integer %lld\n", integer);
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_INTEGER, ctx->current);
 	if (new_element) {
@@ -116,6 +126,7 @@ static int yajl_parse_integer(void *vctx, long long integer) {
 }
 
 static int yajl_parse_string(void *vctx, const unsigned char *string, size_t str_length) {
+	jsondom_debug("parse: string \"%.*s\"\n", (int)str_length, string);
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_STRING, ctx->current);
 	if (new_element) {
@@ -140,11 +151,13 @@ static struct jsondom_t **dict_add_key(struct jsondom_dict_t *dict, const unsign
 		dict->element_cnt++;
 		return &dict->elements[dict->element_cnt - 1];
 	} else {
+		fprintf(stderr, "yajl_strdup failed (key \"%.*s\")\n", keylen, key);
 		return NULL;
 	}
 }
 
 static int yajl_parse_map_key(void *vctx, const unsigned char *key, size_t key_length) {
+	jsondom_debug("parse: dictionary key \"%.*s\"\n", (int)key_length, key);
 	struct yajl_parsing_ctx_t *ctx = (struct yajl_parsing_ctx_t*)vctx;
 	if (ctx->current && (!ctx->next) && (ctx->current->elementtype == JD_DICT)) {
 		ctx->next = dict_add_key(&ctx->current->element.dict, key, key_length);
@@ -156,6 +169,7 @@ static int yajl_parse_map_key(void *vctx, const unsigned char *key, size_t key_l
 }
 
 static int yajl_parse_start_map(void *vctx) {
+	jsondom_debug("parse: start dict\n");
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_DICT, ctx->current);
 	if (new_element) {
@@ -165,12 +179,14 @@ static int yajl_parse_start_map(void *vctx) {
 }
 
 static int yajl_parse_end_map(void *vctx) {
+	jsondom_debug("parse: end dict\n");
 	struct yajl_parsing_ctx_t *ctx = (struct yajl_parsing_ctx_t*)vctx;
 	ctx->current = ctx->current->parent;
 	return 1;
 }
 
 static int yajl_parse_start_array(void *vctx) {
+	jsondom_debug("parse: start array\n");
 	struct yajl_parsing_ctx_t* ctx = (struct yajl_parsing_ctx_t*)vctx;
 	struct jsondom_t *new_element = jsondom_new(JD_ARRAY, ctx->current);
 	int success = yajl_add_primitive(ctx, new_element);
@@ -181,6 +197,7 @@ static int yajl_parse_start_array(void *vctx) {
 }
 
 static int yajl_parse_end_array(void *vctx) {
+	jsondom_debug("parse: end array\n");
 	struct yajl_parsing_ctx_t *ctx = (struct yajl_parsing_ctx_t*)vctx;
 	ctx->current = ctx->current->parent;
 	return 1;
@@ -375,6 +392,17 @@ int main(void) {
 		jsondom_dump(root);
 	}
 	jsondom_free(root);
+
+	FILE *f = fopen("out.json", "r");
+	if (f) {
+		char data[1024 * 16];
+		size_t length = fread(data, 1, sizeof(data), f);
+		data[length] = 0;
+		root = jsondom_parse(data);
+		jsondom_free(root);
+		fclose(f);
+	}
+
 	return 0;
 }
 #endif

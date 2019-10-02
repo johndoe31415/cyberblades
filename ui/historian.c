@@ -81,6 +81,10 @@ static void handle_historian_connection(struct historian_t *historian) {
 		struct jsondom_t *json = jsondom_parse(line_buffer);
 		if (!json) {
 			fprintf(stderr, "Failed to parse server JSON, severing connection.\n");
+			fprintf(stderr, "RX: '%s'\n", line_buffer);
+			FILE *x = fopen("out.json", "w");
+			fwrite(line_buffer, 1, strlen(line_buffer), x);
+			fclose(x);
 			historian->running = false;
 			break;
 		}
@@ -208,7 +212,6 @@ void historian_command(struct historian_t *historian, const char *cmdname, const
 		fflush(historian->f_write);
 	} else {
 		fprintf(stderr, "Command discarded, no write connection: %s", msgbuf);
-		*((int*)NULL) = 0;
 	}
 	pthread_mutex_unlock(&historian->f_mutex);
 }
