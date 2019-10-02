@@ -80,13 +80,17 @@ static void parse_player_stats(struct player_stats_t *stats, struct jsondom_t *s
 	stats->max_score_sum = jsondom_get_dict_int(stat_json, "max_score_sum");
 }
 
+static void request_new_player_info(struct server_state_t *server_state) {
+	historian_command(server_state->historian, "playerinfo", "\"player\":\"%s\"", server_state->player.name);
+}
+
 static void event_handle_historian_status(struct server_state_t *server_state, struct jsondom_t *json) {
 	struct jsondom_t *json_connection = jsondom_get_dict_dict(json, "connection");
 	struct jsondom_t *current_game = jsondom_get_dict_dict(json, "current_game");
 	if (json_connection) {
 		if (strncpycmp(server_state->player.name, jsondom_get_dict_str(json_connection, "current_player"), sizeof(server_state->player.name))) {
 			/* Player name has changed */
-			historian_command(server_state->historian, "playerinfo", "\"player\":\"%s\"", server_state->player.name);
+			request_new_player_info(server_state);
 		}
 		server_state->connected_to_beatsaber = jsondom_get_dict_bool(json_connection, "connected_to_beatsaber");
 
@@ -124,8 +128,19 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 		exit(EXIT_SUCCESS);
 	} else if (event_type == EVENT_KEYPRESS) {
 		struct ui_event_keypress_t *event = (struct ui_event_keypress_t*)vevent;
-
-		printf("%p\n", event);
+		if (event->key == SDLK_BACKSPACE) {
+			int len = strlen(server_state->player.name);
+			server_state->player.name[len - 1] = 0;
+			request_new_player_info(server_state);
+		}
+	} else if (event_type == EVENT_TEXTDATA) {
+		struct ui_event_textdata_t *event = (struct ui_event_textdata_t*)vevent;
+		int len = strlen(server_state->player.name);
+		int add_len = strlen(event->text);
+		if (len + add_len < MAX_TEXT_WIDTH) {
+			strcat(server_state->player.name, event->text);
+			request_new_player_info(server_state);
+		}
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
 //		jsondom_dump(event->json);

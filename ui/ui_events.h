@@ -22,20 +22,25 @@
 
 #ifndef __UI_EVENTS_H__
 #define __UI_EVENTS_H__
-
 #include <stdint.h>
+#include <SDL2/SDL.h>
 #include "jsondom.h"
 
 enum ui_eventtype_t {
 	EVENT_QUIT,
 	EVENT_KEYPRESS,
+	EVENT_TEXTDATA,
 	EVENT_HISTORIAN_MESSAGE,
-	EVENT_HISTORIAN_STATECHG
+	EVENT_HISTORIAN_STATECHG,
 };
 
 struct ui_event_keypress_t {
 	SDL_Keycode key;
 	uint16_t mod;
+};
+
+struct ui_event_textdata_t {
+	char text[32];
 };
 
 struct historian_t;

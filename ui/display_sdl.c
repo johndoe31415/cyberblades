@@ -89,7 +89,10 @@ static void display_sdl_handle_event(struct display_t *display, SDL_Event *event
 #endif
 
 		display->hmi_events.event_callback(EVENT_KEYPRESS, &ui_event, display->hmi_events.callback_ctx);
-
+	} else if (event->type == SDL_TEXTINPUT) {
+		struct ui_event_textdata_t ui_event;
+		strncpy(ui_event.text, event->text.text, sizeof(ui_event.text));
+		display->hmi_events.event_callback(EVENT_TEXTDATA, &ui_event, display->hmi_events.callback_ctx);
 	} else {
 		//printf("Unhandled event type 0x%x\n", event->type);
 	}
@@ -138,6 +141,7 @@ static bool display_sdl_init(struct display_t *display, void *init_ctx) {
 	SDL_ShowCursor(SDL_DISABLE);
 #endif
 
+	SDL_StartTextInput();
 //	SDL_SetWindowFullscreen(ctx->window, SDL_WINDOW_FULLSCREEN);
 
 	ctx->surface = SDL_GetWindowSurface(ctx->window);
