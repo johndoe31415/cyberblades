@@ -147,7 +147,14 @@ static void event_handle_historian_playerinfo(struct server_state_t *server_stat
 	parse_player_stats(&server_state->player.alltime, jsondom_get_dict_dict(json, "alltime"));
 
 	struct jsondom_t *highscore = jsondom_get_dict_dict(json, "highscore");
-	struct jsondom_t *highscore_song_key = jsondom_get_dict_array(highscore, "song_key");
+	struct jsondom_t *highscore_song_key = jsondom_get_dict_dict(highscore, "song_key");
+	if (highscore_song_key) {
+		strncpycmp(server_state->highscores.song_key.song_author, jsondom_get_dict_str(highscore_song_key, "song_author"), sizeof(server_state->highscores.song_key.song_author));
+		strncpycmp(server_state->highscores.song_key.song_title, jsondom_get_dict_str(highscore_song_key, "song_title"), sizeof(server_state->highscores.song_key.song_title));
+		strncpycmp(server_state->highscores.song_key.level_author, jsondom_get_dict_str(highscore_song_key, "level_author"), sizeof(server_state->highscores.song_key.level_author));
+		server_state->highscores.song_key.difficulty = jsondom_get_dict_int(highscore_song_key, "difficulty");
+	}
+
 	struct jsondom_t *highscore_table = jsondom_get_dict_array(highscore, "table");
 	if (highscore_table) {
 		unsigned int highscore_entry_count = highscore_table->element.array.element_cnt;

@@ -78,6 +78,7 @@ struct highscore_entry_t {
 
 struct highscore_table_t {
 	unsigned int entry_count;
+	struct song_metadata_t song_key;
 	struct highscore_entry_t entries[MAX_HIGHSCORE_ENTRY_COUNT];
 };
 
@@ -103,9 +104,6 @@ struct server_state_t {
 	bool connected_to_beatsaber;
 	struct player_info_t player;
 	struct song_info_t current_song;
-
-	struct player_info_t last_player;
-	struct song_info_t last_song;
 	struct highscore_table_t highscores;
 
 	struct historian_t *historian;

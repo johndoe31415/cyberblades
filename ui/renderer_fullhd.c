@@ -164,6 +164,17 @@ static void render_highscore_table(char *dest_buf, unsigned int dest_buf_length,
 	render_highscore_table_entry(dest_buf, dest_buf_length, x, highscore_entry);
 }
 
+static const char *difficulty_str(enum difficulty_level_t difficulty) {
+	switch (difficulty) {
+		case EASY:			return "Easy";
+		case NORMAL:		return "Normal";
+		case HARD:			return "Hard";
+		case EXPERT:		return "Expert";
+		case EXPERTPLUS:	return "Expert+";
+	}
+	return "?";
+}
+
 static void swbuf_render_main_screen(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
 	const int cyberblades_offset = -5;
 	swbuf_text(swbuf, &(const struct font_placement_t) {
@@ -188,7 +199,50 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 	}, "Blades");
 
 	if (server_state->player.name[0]) {
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_CLOUDS), "Current player: %s", server_state->player.name);
+		const struct font_placement_t player_placement = {
+			.font_face = "Roboto",
+			.font_size = 40,
+			.font_color = COLOR_CLOUDS,
+			.placement = {
+				 .src_anchor = {
+					.x = XPOS_LEFT,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_LEFT,
+					.y = YPOS_TOP,
+				},
+				.xoffset = 100,
+				.yoffset = 200,
+			}
+		};
+		swbuf_text(swbuf, &player_placement, "%s", server_state->player.name);
+
+
+		const struct font_placement_t song_placement = {
+			.font_face = "Roboto",
+			.font_size = 40,
+			.font_color = COLOR_CLOUDS,
+			.placement = {
+				 .src_anchor = {
+					.x = XPOS_RIGHT,
+					.y = YPOS_BOTTOM,
+				},
+				.dst_anchor = {
+					.x = XPOS_RIGHT,
+					.y = YPOS_TOP,
+				},
+				.xoffset = -100,
+				.yoffset = 200,
+			}
+		};
+		if (server_state->highscores.song_key.song_title[0]) {
+			if (server_state->highscores.song_key.song_author[0]) {
+				swbuf_text(swbuf, &song_placement, "%s - %s (%s)", server_state->highscores.song_key.song_author, server_state->highscores.song_key.song_title, difficulty_str(server_state->highscores.song_key.difficulty));
+			} else {
+				swbuf_text(swbuf, &song_placement, "%s (%s)", server_state->highscores.song_key.song_title, difficulty_str(server_state->highscores.song_key.difficulty));
+			}
+		}
 
 		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 2, COLOR_CLOUDS), "Playtime");
 		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 2, COLOR_CLOUDS), "Notes Cut");
