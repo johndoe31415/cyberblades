@@ -78,6 +78,7 @@ class BeatSaberHistorian():
 		with gzip.open(destination_filename, "wt") as f:
 			json.dump(self._current_songdata, f)
 			f.write("\n")
+		os.sync()
 		self._db.add_scorekeeper_results(self._current_songdata["meta"]["player"], self._current_songdata["meta"]["songStartLocal"], self._current_score)
 		self._db.mark_file_seen(destination_filename)
 		self._current_songdata = None
