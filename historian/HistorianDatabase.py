@@ -32,18 +32,11 @@ from ScoreKeeper import ScoreKeeper
 from DAOObjects import DifficultyEnum
 
 class HistorianDatabase():
-	_PlayTimes = collections.namedtuple("PlayTimes", [ "player", "games_played", "playtime_secs", "score_sum", "max_score_sum", "passed_notes_sum", "missed_notes_sum" ])
-	_PlayResult = collections.namedtuple("PlayResult", [ "player", "local_ts", "starttime_local", "song_title", "song_author", "level_author", "difficulty", "playtime", "pausetime", "verdict", "rank", "score", "max_score", "combo", "max_combo" ])
-	_SongKey = collections.namedtuple("SongKey", [ "song_title", "song_author", "level_author", "difficulty" ])
-	_DBReadHandlers = {
-		"difficulty":		DifficultyEnum,
-		"local_ts":			lambda x: datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%S"),
-	}
-
 	def __init__(self, config):
 		self._config = config
 		self._db = sqlite3.connect(self._config["historian_db"])
 		self._cursor = self._db.cursor()
+		self._cursor.row_factory = self._row_dict_factory
 		with contextlib.suppress(sqlite3.OperationalError):
 			self._cursor.execute("""
 			CREATE TABLE results (
@@ -89,12 +82,19 @@ class HistorianDatabase():
 			""")
 		self._db.commit()
 
-	def _insert_result(self, rowdata):
+	@staticmethod
+	def _row_dict_factory(cursor, row):
+		return { column[0]: row[index] for (index, column) in enumerate(cursor.description) }
+
+	def _insert_table(self, tablename, rowdata):
 		keyvalues = list(rowdata.items())
 		keys = ", ".join(key for (key, value) in keyvalues)
 		values = ", ".join([ "?" ] * len(keyvalues))
-		sql = "INSERT INTO results (%s) VALUES (%s);" % (keys, values)
+		sql = "INSERT INTO %s (%s) VALUES (%s);" % (tablename, keys, values)
 		self._cursor.execute(sql, tuple(value for (key, value) in keyvalues))
+
+	def _insert_result(self, rowdata):
+		return self._insert_table("results", rowdata)
 
 	def _have_result(self, gamehash):
 		(count, ) = self._cursor.execute("SELECT COUNT(*) FROM results WHERE gamehash = ?;", (gamehash, )).fetchone()
@@ -177,34 +177,46 @@ class HistorianDatabase():
 		self._parse_history(filename)
 		self.mark_file_seen(filename)
 
-	def _results_select(self, sql_query, result_class, parameters = tuple(), insert_fields = True, process_fields = True):
-		if insert_fields:
-			fields = ", ".join(result_class._fields)
-			sql_query = sql_query % (fields)
-		results = [ list(row) for row in self._cursor.execute(sql_query, parameters).fetchall() ]
-		if process_fields:
-			for (i, fieldname) in enumerate(result_class._fields):
-				handler = self._DBReadHandlers.get(fieldname)
-				if handler is not None:
-					for result in results:
-						result[i] = handler(result[i])
-		return [ result_class(*result) for result in results ]
-
-	def recent_results(self, count = 10):
-		return self._results_select("SELECT %s FROM results ORDER BY endtime DESC LIMIT ?;", parameters = (count, ), result_class = self._PlayResult)
+	def recent_results(self, limit = 10):
+		return self._cursor.execute("""
+			SELECT player
+				FROM results
+				ORDER BY endtime DESC
+				LIMIT ?;
+		""", (limit, )).fetchall()
 
 	def get_last_game(self, player):
-		return self._results_select("SELECT %s FROM results WHERE player = ? ORDER BY endtime DESC LIMIT 1;", parameters = (player, ), result_class = self._PlayResult, process_fields = False)
+		return self._cursor.execute("""
+			SELECT song_author, song_title, level_author, difficulty, score, max_score, rank
+				FROM results
+				WHERE player = ?
+				ORDER BY endtime DESC
+				LIMIT 1;
+		""", (player, )).fetchone()
 
 	def all_song_keys(self):
-		return self._results_select("SELECT DISTINCT %s FROM results ORDER BY song_author ASC, song_title ASC, difficulty DESC;", result_class = self._SongKey)
+		return self._cursor.execute("""
+			SELECT DISTINCT song_author, song_title, level_author, difficulty
+				FROM results
+				ORDER BY song_author ASC, song_title ASC, difficulty DESC;
+		""").fetchall()
 
-	def get_highscores(self, song_key, count = 10, process_fields = True):
-		return self._results_select("SELECT %s FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? ORDER BY score DESC LIMIT ?;", parameters = (song_key.song_title, song_key.song_author, song_key.level_author, song_key.difficulty, count), result_class = self._PlayResult, process_fields = process_fields)
+	def get_highscores(self, song_key, limit = 10):
+		return self._cursor.execute("""
+			SELECT player, local_ts, score, max_score, rank, max_combo, verdict
+			FROM results
+			WHERE (song_title = ?) AND (song_author = ?) AND (level_author = ?) AND (difficulty = ?)
+			ORDER BY score DESC
+			LIMIT ?;
+		""", (song_key["song_title"], song_key["song_author"], song_key["level_author"], song_key["difficulty"], limit)).fetchall()
 
 	def get_highscore_rank(self, song_key, score):
-		row = self._cursor.execute("SELECT COUNT(*) FROM results WHERE song_title = ? AND song_author = ? AND level_author = ? AND difficulty = ? AND score > ?;", (song_key.song_title, song_key.song_author, song_key.level_author, song_key.difficulty, score)).fetchone()
-		return row[0] + 1
+		row = self._cursor.execute("""
+			SELECT COUNT(*) AS rank
+				FROM results
+				WHERE (song_title = ?) AND (song_author = ?) AND (level_author = ?) AND (difficulty = ?) AND (score > ?);
+			""", (song_key["song_title"], song_key["song_author"], song_key["level_author"], song_key["difficulty"], score)).fetchone()
+		return row["rank"] + 1
 
 	def get_playtimes(self, date = None, player = None):
 		where = [ ]
@@ -220,30 +232,41 @@ class HistorianDatabase():
 			where = ""
 		else:
 			where = "WHERE %s" % (" AND ".join("(%s)" % (clause) for clause in where))
-		return self._results_select("SELECT player, COUNT(score), SUM(playtime), SUM(score), SUM(max_score), SUM(passed_notes), SUM(missed_notes) AS playtime_secs FROM results %s GROUP BY player ORDER BY playtime_secs DESC;" % (where), parameters = parameters, result_class = self._PlayTimes, insert_fields = False)
+
+		return self._cursor.execute("""
+			SELECT player, COUNT(score) AS games_played, SUM(playtime) AS total_playtime_secs, SUM(score) AS total_score, SUM(max_score) AS total_max_score, SUM(passed_notes) AS total_passed_notes, SUM(missed_notes) AS total_missed_notes
+			FROM results
+			%s
+			GROUP BY player
+			ORDER BY total_playtime_secs DESC;""" % (where), parameters).fetchall()
 
 	def get_playtimes_today(self, player = None):
 		return self.get_playtimes(date = datetime.date.today(), player = player)
 
-	def get_last_games(self, time_duration_secs = 3600 * 3, count = 10):
+	def get_last_games(self, time_duration_secs = 3600 * 3, limit = 10):
 		starttime_after = time.time() - time_duration_secs
-		return self._results_select("SELECT %s FROM results WHERE starttime_local > ? ORDER BY endtime DESC LIMIT ?;", parameters = (starttime_after, count), result_class = self._PlayResult)
+		return self._cursor.execute("""
+			SELECT player
+			FROM results
+			WHERE starttime_local > ?
+			ORDER BY endtime DESC
+			LIMIT ?;
+		""", (starttime_after, limit)).fetchall()
 
-	def get_player_info(self, player, process_fields = False):
+	def get_player_info(self, player):
 		def _first(rlist):
 			if len(rlist) == 0:
 				return None
 			else:
-				return dict(rlist[0]._asdict())
+				return rlist[0]
 		result = {
 			"today":		_first(self.get_playtimes_today(player = player)),
 			"alltime":		_first(self.get_playtimes(player = player)),
-			"lastgame":		_first(self.get_last_game(player = player)),
+			"lastgame":		self.get_last_game(player = player),
 		}
 		if result["lastgame"] is not None:
-			song_key = self._SongKey(**{ key: result["lastgame"][key] for key in [ "song_author", "song_title", "level_author", "difficulty" ] })
-			result["highscore"] = [ hs._asdict() for hs in self.get_highscores(song_key, process_fields = process_fields) ]
-			result["lastgame_highscore_rank"] = self.get_highscore_rank(song_key, result["lastgame"]["score"])
+			result["highscore"] = self.get_highscores(song_key = result["lastgame"], limit = 10)
+			result["lastgame_highscore_rank"] = self.get_highscore_rank(song_key = result["lastgame"], score = result["lastgame"]["score"])
 		return result
 
 	def get_recent_players(self, time_duration_secs = 86400):
