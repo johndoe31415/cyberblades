@@ -216,6 +216,7 @@ void swbuf_render_table(struct cairo_swbuf_t *surface, const struct table_defini
 			placement.placement.yoffset = table_placement.top_left.y + base_y;
 
 			char buffer[256];
+			buffer[0] = 0;
 			table->rendering_callback(buffer, sizeof(buffer), &placement, x, y, ctx);
 			swbuf_text(surface, &placement, "%s", buffer);
 		}

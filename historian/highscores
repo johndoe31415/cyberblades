@@ -49,6 +49,8 @@ def format_result(result, ref_score = 0, show_song = False):
 	ref_percentage = (result["score"] / ref_score * 100) if (ref_score != 0) else 0
 
 	cols = [ ]
+	if "number" in result:
+		cols.append("%3d)" % (result["number"]))
 	cols.append("%-15s" % (result["player"]))
 	cols.append("%-15s" % (result["score"]))
 	cols.append("%5.1f%%" % (percentage))
@@ -64,10 +66,10 @@ def format_result(result, ref_score = 0, show_song = False):
 for song_key in db.all_song_keys():
 	ref_score = None
 	print("%s - %s (%s)" % (song_key["song_author"], song_key["song_title"], DifficultyEnum(song_key["difficulty"]).name))
-	for (number, entry) in enumerate(db.get_highscores(song_key), 1):
+	for entry in db.get_highscores(song_key)["table"]:
 		if ref_score is None:
 			ref_score = entry["score"]
-		print("%2d) %s" % (number, format_result(entry, ref_score)))
+		print(format_result(entry, ref_score))
 	print()
 
 playtimes_today = db.get_playtimes_today()
@@ -88,4 +90,9 @@ else:
 	for last_game in last_games:
 		print(format_result(last_game, show_song = True))
 
-#print(json.dumps(db.get_player_info("joe"), sort_keys = True, indent = 4))
+
+player_info = db.get_player_info("joe")
+print(json.dumps(player_info, sort_keys = True, indent = 4))
+#song_key = player_info["highscore"]["song_key"]
+#print(song_key)
+#print(db.get_highscore_rank(song_key, score = 93, max_combo = 2))

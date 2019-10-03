@@ -40,7 +40,7 @@ class HistorianDatabase():
 		with contextlib.suppress(sqlite3.OperationalError):
 			self._cursor.execute("""
 			CREATE TABLE results (
-				int id PRIMARY KEY,
+				gameid integer PRIMARY KEY,
 				player varchar NULL,
 				local_ts varchar NOT NULL,
 				starttime_local float NOT NULL,
@@ -187,7 +187,7 @@ class HistorianDatabase():
 
 	def get_last_game(self, player):
 		return self._cursor.execute("""
-			SELECT song_author, song_title, level_author, difficulty, score, max_score, rank
+			SELECT gameid, song_author, song_title, level_author, difficulty, score, max_score, rank, player, local_ts, max_combo, verdict
 				FROM results
 				WHERE player = ?
 				ORDER BY endtime DESC
@@ -201,22 +201,61 @@ class HistorianDatabase():
 				ORDER BY song_author ASC, song_title ASC, difficulty DESC;
 		""").fetchall()
 
-	def get_highscores(self, song_key, limit = 10):
-		return self._cursor.execute("""
-			SELECT player, local_ts, score, max_score, rank, max_combo, verdict
+	def get_highscores(self, song_key, limit = 100):
+		table = self._cursor.execute("""
+			SELECT gameid, player, local_ts, score, max_score, rank, max_combo, verdict
 			FROM results
 			WHERE (song_title = ?) AND (song_author = ?) AND (level_author = ?) AND (difficulty = ?)
-			ORDER BY score DESC
+			ORDER BY score DESC, max_combo DESC
 			LIMIT ?;
 		""", (song_key["song_title"], song_key["song_author"], song_key["level_author"], song_key["difficulty"], limit)).fetchall()
+		last_score = None
+		rank = 0
+		for entry in table:
+			this_score = (entry["score"], entry["max_combo"])
+			if this_score != last_score:
+				rank += 1
+				last_score = this_score
+			entry["number"] = rank
+		result = {
+			"song_key": {
+				"song_title":	song_key["song_title"],
+				"song_author":	song_key["song_author"],
+				"level_author":	song_key["level_author"],
+				"difficulty":	song_key["difficulty"],
+			},
+			"table":	table,
+		}
+		return result
 
-	def get_highscore_rank(self, song_key, score):
+	def get_highscore_rank(self, song_key, score, max_combo):
 		row = self._cursor.execute("""
-			SELECT COUNT(*) AS rank
+			SELECT COUNT(DISTINCT COALESCE(score, '|', max_combo)) AS rank
 				FROM results
-				WHERE (song_title = ?) AND (song_author = ?) AND (level_author = ?) AND (difficulty = ?) AND (score > ?);
-			""", (song_key["song_title"], song_key["song_author"], song_key["level_author"], song_key["difficulty"], score)).fetchone()
+				WHERE ((song_title = ?) AND (song_author = ?) AND (level_author = ?) AND (difficulty = ?))
+					AND	((score > ?) OR ((score = ?) AND (max_combo > ?)));
+			""", (song_key["song_title"], song_key["song_author"], song_key["level_author"], song_key["difficulty"], score, score, max_combo)).fetchone()
 		return row["rank"] + 1
+
+	def get_personal_highscores(self, player, limit = 10):
+		last_game = self.get_last_game(player)
+		if last_game is not None:
+			highscores = self.get_highscores(song_key = last_game, limit = limit)
+			highscore_game_ids = set(highscore["gameid"] for highscore in highscores["table"])
+			if (last_game["gameid"] not in highscore_game_ids):
+				number = self.get_highscore_rank(song_key = last_game, score = last_game["score"], max_combo = last_game["max_combo"])
+				highscores["table"] = highscores["table"][:-1]
+				last_game_highscore = { key: last_game[key] for key in [ "gameid", "local_ts", "max_combo", "max_score", "player", "rank", "verdict", "score" ] }
+				last_game_highscore["number"] = number
+				highscores["table"].append(last_game_highscore)
+			for entry in highscores["table"]:
+				if entry["gameid"] == last_game["gameid"]:
+					entry["most_recent"] = True
+				del entry["gameid"]
+		else:
+			highscores = None
+		return highscores
+
 
 	def get_playtimes(self, date = None, player = None):
 		where = [ ]
@@ -262,11 +301,8 @@ class HistorianDatabase():
 		result = {
 			"today":		_first(self.get_playtimes_today(player = player)),
 			"alltime":		_first(self.get_playtimes(player = player)),
-			"lastgame":		self.get_last_game(player = player),
+			"highscore":	self.get_personal_highscores(player = player, limit = 10),
 		}
-		if result["lastgame"] is not None:
-			result["highscore"] = self.get_highscores(song_key = result["lastgame"], limit = 10)
-			result["lastgame_highscore_rank"] = self.get_highscore_rank(song_key = result["lastgame"], score = result["lastgame"]["score"])
 		return result
 
 	def get_recent_players(self, time_duration_secs = 86400):

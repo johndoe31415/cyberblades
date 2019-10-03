@@ -98,6 +98,38 @@ static void swbuf_render_main_screen_bottom_box(const struct server_state_t *ser
 	}
 }
 
+static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_length, unsigned int x, const struct highscore_entry_t *entry) {
+	switch (x) {
+		case 0:
+			csnprintf(dest_buf, dest_buf_length, "%d", entry->number);
+			break;
+
+		case 1:
+			csnprintf(dest_buf, dest_buf_length, "%s", entry->name);
+			break;
+
+		case 2:
+			csnprintf(dest_buf, dest_buf_length, "%u", entry->performance.score);
+			break;
+
+		case 3:
+			csnprintf(dest_buf, dest_buf_length, "%u", entry->performance.max_combo);
+			break;
+
+		case 4:
+			if (entry->performance.max_score) {
+				csnprintf(dest_buf, dest_buf_length, "%.1f%%", 100. * entry->performance.score / entry->performance.max_score);
+			} else {
+				snprintf(dest_buf, dest_buf_length, "—");
+			}
+			break;
+
+		case 5:
+			csnprintf(dest_buf, dest_buf_length, "%s", entry->performance.rank);
+			break;
+	}
+}
+
 static void render_highscore_table(char *dest_buf, unsigned int dest_buf_length, struct font_placement_t *placement, unsigned int x, unsigned int y, void *ctx) {
 	const struct server_state_t *server_state = (const struct server_state_t*)ctx;
 
@@ -115,49 +147,21 @@ static void render_highscore_table(char *dest_buf, unsigned int dest_buf_length,
 		return;
 	}
 
-	const unsigned int highscore_rank = y;
 	const unsigned int highscore_index = y - 1;
 	if (highscore_index >= server_state->highscores.entry_count) {
 		return;
 	}
+
 	const struct highscore_entry_t *highscore_entry = &server_state->highscores.entries[highscore_index];
 
 	if (!highscore_entry->performance.verdict_passed) {
 		placement->font_color = COLOR_ASBESTOS;
 	}
-	if (highscore_rank == server_state->highscores.lastgame_highscore_rank) {
+	if (highscore_entry->most_recent) {
 		placement->font_color = highscore_entry->performance.verdict_passed ? COLOR_SUN_FLOWER : COLOR_ORANGE;
 	}
 
-	switch (x) {
-		case 0:
-			csnprintf(dest_buf, dest_buf_length, "%d", highscore_rank);
-			break;
-
-		case 1:
-			csnprintf(dest_buf, dest_buf_length, "%s", highscore_entry->name);
-			break;
-
-		case 2:
-			csnprintf(dest_buf, dest_buf_length, "%u", highscore_entry->performance.score);
-			break;
-
-		case 3:
-			csnprintf(dest_buf, dest_buf_length, "%u", highscore_entry->performance.max_combo);
-			break;
-
-		case 4:
-			if (highscore_entry->performance.max_score) {
-				csnprintf(dest_buf, dest_buf_length, "%.1f%%", 100. * highscore_entry->performance.score / highscore_entry->performance.max_score);
-			} else {
-				snprintf(dest_buf, dest_buf_length, "-");
-			}
-			break;
-
-		case 5:
-			csnprintf(dest_buf, dest_buf_length, "%s", highscore_entry->performance.rank);
-			break;
-	}
+	render_highscore_table_entry(dest_buf, dest_buf_length, x, highscore_entry);
 }
 
 static void swbuf_render_main_screen(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {

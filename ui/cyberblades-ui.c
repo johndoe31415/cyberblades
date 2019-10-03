@@ -115,6 +115,11 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 			server_state->ui_screen = GAME_SCREEN;
 			server_state->screen_shown_at_ts = now();
 		} else {
+			if (server_state->ui_screen == GAME_SCREEN) {
+				/* Was playing a game, now back to main screen: Update
+				 * highscores! */
+				request_player_information(server_state);
+			}
 			server_state->ui_screen = MAIN_SCREEN;
 			server_state->screen_shown_at_ts = now();
 		}
@@ -126,6 +131,8 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 
 static void parse_highscore_entry(struct highscore_entry_t *entry, struct jsondom_t *json) {
 	strncpycmp(entry->name, jsondom_get_dict_str(json, "player"), sizeof(entry->name));
+	entry->number = jsondom_get_dict_int(json, "number");
+	entry->most_recent = jsondom_get_dict_bool(json, "most_recent");
 	parse_performance(&entry->performance, json);
 }
 
@@ -139,15 +146,16 @@ static void event_handle_historian_playerinfo(struct server_state_t *server_stat
 	parse_player_stats(&server_state->player.today, jsondom_get_dict_dict(json, "today"));
 	parse_player_stats(&server_state->player.alltime, jsondom_get_dict_dict(json, "alltime"));
 
-	struct jsondom_t *highscore = jsondom_get_dict_array(json, "highscore");
-	if (highscore) {
-		unsigned int highscore_entry_count = highscore->element.array.element_cnt;
+	struct jsondom_t *highscore = jsondom_get_dict_dict(json, "highscore");
+	struct jsondom_t *highscore_song_key = jsondom_get_dict_array(highscore, "song_key");
+	struct jsondom_t *highscore_table = jsondom_get_dict_array(highscore, "table");
+	if (highscore_table) {
+		unsigned int highscore_entry_count = highscore_table->element.array.element_cnt;
 		server_state->highscores.entry_count = (highscore_entry_count > MAX_HIGHSCORE_ENTRY_COUNT) ? MAX_HIGHSCORE_ENTRY_COUNT : highscore_entry_count;
 		for (unsigned int i = 0; i < server_state->highscores.entry_count; i++) {
-			struct jsondom_t *highscore_entry = jsondom_get_array_item(highscore, i);
+			struct jsondom_t *highscore_entry = jsondom_get_array_item(highscore_table, i);
 			parse_highscore_entry(&server_state->highscores.entries[i], highscore_entry);
 		}
-		server_state->highscores.lastgame_highscore_rank = jsondom_get_dict_int(json, "lastgame_highscore_rank");
 	} else {
 		server_state->highscores.entry_count = 0;
 	}

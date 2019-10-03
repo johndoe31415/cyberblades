@@ -71,13 +71,14 @@ struct song_info_t {
 
 struct highscore_entry_t {
 	char name[MAX_TEXT_WIDTH];
+	bool most_recent;
+	unsigned int number;
 	struct performance_info_t performance;
 };
 
 struct highscore_table_t {
 	unsigned int entry_count;
 	struct highscore_entry_t entries[MAX_HIGHSCORE_ENTRY_COUNT];
-	unsigned int lastgame_highscore_rank;
 };
 
 struct player_stats_t {
