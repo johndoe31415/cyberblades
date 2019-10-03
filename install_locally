@@ -1,0 +1,92 @@
+#!/usr/bin/python3
+#	pibeatsaber - Beat Saber historian application that tracks players
+#	Copyright (C) 2019-2019 Johannes Bauer
+#
+#	This file is part of pibeatsaber.
+#
+#	pibeatsaber is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	pibeatsaber is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+
+import os
+import sys
+import pwd
+import subprocess
+from FriendlyArgumentParser import FriendlyArgumentParser
+
+parser = FriendlyArgumentParser(description = "Installs CyberBlades on a Raspberry Pi.")
+parser.add_argument("-n", "--no-pkgs", action = "store_true", help = "Do not install any apt or Python packages.")
+parser.add_argument("-v", "--verbose", action = "count", default = 0, help = "Increases verbosity. Can be specified multiple times to increase.")
+args = parser.parse_args(sys.argv[1:])
+
+
+if os.getuid() != 0:
+	print("To install CyberBlades on this system you need to be root.", file = sys.stderr)
+	sys.exit(1)
+
+# Install all dependencies first
+if not args.no_pkgs:
+	subprocess.check_call([ "apt-get", "update" ])
+	required_pkgs = [
+		"build-essential",
+		"libyajl-dev", "libyajl2",
+		"libcairo-dev",
+		"python3-pip",
+	]
+	subprocess.check_call([ "apt-get", "--yes", "install" ] + required_pkgs)
+	subprocess.check_call([ "pip3", "install", "websockets", "tzlocal" ])
+
+# Then determine the path and user under which to install
+cb_basedir = os.path.dirname(os.path.realpath(__file__))
+cb_uid = os.stat(cb_basedir).st_uid
+if cb_uid == 0:
+	print("Will not install service running as root. Change permission of %s to an unpriviliged user.", file = sys.stderr)
+	sys.exit(1)
+username = pwd.getpwuid(cb_uid).pw_name
+print("Installing CyberBlades installed into %s as user %s" % (cb_basedir, username), file = sys.stderr)
+
+# Then build UI code
+subprocess.check_call([ "sudo", "-u", username, "make", "-C", "%s/ui" % (cb_basedir) ])
+
+# Finally, install Systemd services
+with open("/etc/systemd/system/cyberblades-historian.service", "w") as f:
+	print("[Unit]", file = f)
+	print("Description=CyberBlades historian service", file = f)
+	print("After=network-online.target", file = f)
+	print(file = f)
+	print("[Service]", file = f)
+	print("Type=simple", file = f)
+	print("ExecStart=%s/historian/beatsaberhistorian" % (cb_basedir), file = f)
+	print("WorkingDirectory=%s/historian" % (cb_basedir), file = f)
+	print(file = f)
+	print("[Install]", file = f)
+	print("WantedBy=multi-user.target", file = f)
+
+with open("/etc/systemd/system/cyberblades-ui.service", "w") as f:
+	print("[Unit]", file = f)
+	print("Description=CyberBlades UI service", file = f)
+	print("After=network-online.target", file = f)
+	print(file = f)
+	print("[Service]", file = f)
+	print("Type=simple", file = f)
+	print("ExecStart=%s/ui/cyberblades-ui" % (cb_basedir), file = f)
+	print("WorkingDirectory=%s/ui" % (cb_basedir), file = f)
+	print(file = f)
+	print("[Install]", file = f)
+	print("WantedBy=multi-user.target", file = f)
+
+subprocess.check_call([ "systemctl", "enable", "cyberblades-historian" ])
+subprocess.check_call([ "systemctl", "start", "cyberblades-historian" ])
+subprocess.check_call([ "systemctl", "enable", "cyberblades-ui" ])
+subprocess.check_call([ "systemctl", "start", "cyberblades-ui" ])
