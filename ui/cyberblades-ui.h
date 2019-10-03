@@ -60,6 +60,7 @@ struct performance_info_t {
 	unsigned int hit_notes;
 	unsigned int passed_notes;
 	unsigned int missed_notes;
+	bool verdict_passed;
 	char rank[4];
 };
 
@@ -81,11 +82,11 @@ struct highscore_table_t {
 
 struct player_stats_t {
 	unsigned int games_played;
-	unsigned int playtime_secs;
-	unsigned int passed_notes_sum;
-	unsigned int missed_notes_sum;
-	unsigned int score_sum;
-	unsigned int max_score_sum;
+	unsigned int total_playtime_secs;
+	unsigned int total_score;
+	unsigned int total_max_score;
+	unsigned int total_passed_notes;
+	unsigned int total_missed_notes;
 };
 
 struct player_info_t {

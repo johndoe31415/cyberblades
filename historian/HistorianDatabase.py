@@ -97,12 +97,12 @@ class HistorianDatabase():
 		return self._insert_table("results", rowdata)
 
 	def _have_result(self, gamehash):
-		(count, ) = self._cursor.execute("SELECT COUNT(*) FROM results WHERE gamehash = ?;", (gamehash, )).fetchone()
-		return count != 0
+		result = self._cursor.execute("SELECT COUNT(*) AS cnt FROM results WHERE gamehash = ?;", (gamehash, )).fetchone()
+		return result["cnt"] != 0
 
 	def _file_seen(self, filesize, mtime_micros):
-		(count, ) = self._cursor.execute("SELECT COUNT(*) FROM seen_files WHERE size_bytes = ? AND mtime_micros = ?;", (filesize, mtime_micros)).fetchone()
-		return count != 0
+		result = self._cursor.execute("SELECT COUNT(*) AS cnt FROM seen_files WHERE size_bytes = ? AND mtime_micros = ?;", (filesize, mtime_micros)).fetchone()
+		return result["cnt"] != 0
 
 	def _add_file_seen(self, filesize, mtime_micros):
 		self._cursor.execute("INSERT INTO seen_files (size_bytes, mtime_micros) VALUES (?, ?);", (filesize, mtime_micros))
@@ -246,7 +246,7 @@ class HistorianDatabase():
 	def get_last_games(self, time_duration_secs = 3600 * 3, limit = 10):
 		starttime_after = time.time() - time_duration_secs
 		return self._cursor.execute("""
-			SELECT player
+			SELECT player, score, max_score, rank, max_combo, verdict, local_ts, song_author, song_title, level_author, difficulty
 			FROM results
 			WHERE starttime_local > ?
 			ORDER BY endtime DESC

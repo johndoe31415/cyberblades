@@ -199,12 +199,41 @@ static struct placement_t swbuf_calculate_placement(const struct cairo_swbuf_t *
 	return placement;
 }
 
+void swbuf_render_table(struct cairo_swbuf_t *surface, const struct table_definition_t *table, void *ctx) {
+	const unsigned int table_height = table->row_height * table->rows;
+	unsigned int table_width = 0;
+	for (unsigned int x = 0; x < table->columns; x++) {
+		table_width += table->column_widths[x];
+	}
+	struct placement_t table_placement = swbuf_calculate_placement(surface, &table->anchor, table_width, table_height);
+
+	unsigned int base_x = 0;
+	for (unsigned int x = 0; x < table->columns; x++) {
+		for (unsigned int y = 0; y < table->rows; y++) {
+			unsigned int base_y = table->row_height * y;
+			struct font_placement_t placement = table->font_default;
+			placement.placement.xoffset = table_placement.top_left.x + base_x;
+			placement.placement.yoffset = table_placement.top_left.y + base_y;
+
+			char buffer[256];
+			table->rendering_callback(buffer, sizeof(buffer), &placement, x, y, ctx);
+			swbuf_text(surface, &placement, "%s", buffer);
+		}
+		base_x += table->column_widths[x];
+	}
+}
+
 unsigned int swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *placement, const char *fmt, ...) {
 	char text[512];
 	va_list ap;
 	va_start(ap, fmt);
-	csnprintf(text, sizeof(text), fmt, ap);
+	cvsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
+
+	if (!placement->font_size) {
+		fprintf(stderr, "Warning: Font size zero. Not rendered: \"%s\"\n", text);
+		return 0;
+	}
 
 	cairo_text_extents_t extents;
 	cairo_select_font_face(surface->ctx, placement->font_face, CAIRO_FONT_SLANT_NORMAL, placement->font_bold ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);

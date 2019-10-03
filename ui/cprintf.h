@@ -29,7 +29,8 @@
 #define CPRINTF_FMT_SIZE_FLOAT			"%2!"
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-void csnprintf(char *str, size_t size, const char *fmt, va_list ap);
+void cvsnprintf(char *str, size_t size, const char *fmt, va_list ap);
+void csnprintf(char *str, size_t size, const char *fmt, ...);
 void cprintf(const char *fmt, ...);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 

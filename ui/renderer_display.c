@@ -176,7 +176,7 @@ static void swbuf_render_small_display(const struct server_state_t *server_state
 				.yoffset = 65 + 25 * 2,
 			}
 
-		}, "Scoresum: %.1f k", server_state->score_sum / 1000.);
+		}, "Scoresum: %.1f k", server_state->total_score / 1000.);
 
 	} if (server_state->ui_screen == GAME_SCREEN) {
 		{

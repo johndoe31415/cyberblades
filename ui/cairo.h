@@ -89,12 +89,21 @@ struct placement_t {
 #endif
 };
 
+struct table_definition_t {
+	unsigned int columns, rows;
+	unsigned int *column_widths;
+	unsigned int row_height;
+	struct anchored_placement_t anchor;
+	struct font_placement_t font_default;
+	void (*rendering_callback)(char *dest_buf, unsigned int dest_buf_length, struct font_placement_t *placement, unsigned int x, unsigned int y, void *ctx);
+};
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
 struct cairo_swbuf_t *create_swbuf(unsigned int width, unsigned int height);
 void swbuf_clear(struct cairo_swbuf_t *surface, uint32_t bgcolor);
 uint32_t* swbuf_get_pixel_data(const struct cairo_swbuf_t *surface);
 uint32_t swbuf_get_pixel(const struct cairo_swbuf_t *surface, unsigned int x, unsigned int y);
+void swbuf_render_table(struct cairo_swbuf_t *surface, const struct table_definition_t *table, void *ctx);
 unsigned int swbuf_text(struct cairo_swbuf_t *surface, const struct font_placement_t *placement, const char *fmt, ...);
 void swbuf_rect(struct cairo_swbuf_t *surface, const struct rect_placement_t *placement);
 void swbuf_circle(struct cairo_swbuf_t *surface, unsigned int x, unsigned int y, unsigned int radius, uint32_t color);

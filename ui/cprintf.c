@@ -77,7 +77,7 @@ static int cprintf_arg(char *str, size_t size, const char *fmt, va_list ap) {
 	}
 }
 
-void csnprintf(char *str, size_t size, const char *fmt, va_list ap) {
+void cvsnprintf(char *str, size_t size, const char *fmt, va_list ap) {
 	if (size < 1) {
 		return;
 	} else if (size == 1) {
@@ -126,11 +126,18 @@ void csnprintf(char *str, size_t size, const char *fmt, va_list ap) {
 	str[out_offset] = 0;
 }
 
+void csnprintf(char *str, size_t size, const char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	cvsnprintf(str, size, fmt, ap);
+	va_end(ap);
+}
+
 void cprintf(const char *fmt, ...) {
 	char buffer[1024];
 	va_list ap;
 	va_start(ap, fmt);
-	csnprintf(buffer, sizeof(buffer), fmt, ap);
+	cvsnprintf(buffer, sizeof(buffer), fmt, ap);
 	va_end(ap);
 	printf("%s", buffer);
 }

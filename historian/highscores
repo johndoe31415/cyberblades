@@ -76,8 +76,8 @@ if len(playtimes_today) == 0:
 else:
 	print("Playtimes today:")
 	for entry in playtimes_today:
-		playtime_secs = round(entry.playtime_secs)
-		print("%-15s %2d:%02d   %5.2f M   %d" % (entry.player, playtime_secs // 60, playtime_secs % 60, entry.score_sum / 1e6, entry.passed_notes_sum - entry.missed_notes_sum))
+		playtime_secs = round(entry["total_playtime_secs"])
+		print("%-15s %2d:%02d   %5.2f M   %d" % (entry["player"], playtime_secs // 60, playtime_secs % 60, entry["total_score"] / 1e6, entry["total_passed_notes"] - entry["total_missed_notes"]))
 print()
 
 last_games = db.get_last_games()

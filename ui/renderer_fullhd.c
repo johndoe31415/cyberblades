@@ -98,6 +98,68 @@ static void swbuf_render_main_screen_bottom_box(const struct server_state_t *ser
 	}
 }
 
+static void render_highscore_table(char *dest_buf, unsigned int dest_buf_length, struct font_placement_t *placement, unsigned int x, unsigned int y, void *ctx) {
+	const struct server_state_t *server_state = (const struct server_state_t*)ctx;
+
+	if ((y == 0) && (x < 6)) {
+		const char *heading[] = {
+			"#",
+			"Player",
+			"Score",
+			"Max Combo",
+			"%",
+			"Rank",
+		};
+		strncpy(dest_buf, heading[x], dest_buf_length);
+		placement->font_bold = true;
+		return;
+	}
+
+	const unsigned int highscore_rank = y;
+	const unsigned int highscore_index = y - 1;
+	if (highscore_index >= server_state->highscores.entry_count) {
+		return;
+	}
+	const struct highscore_entry_t *highscore_entry = &server_state->highscores.entries[highscore_index];
+
+	if (!highscore_entry->performance.verdict_passed) {
+		placement->font_color = COLOR_ASBESTOS;
+	}
+	if (highscore_rank == server_state->highscores.lastgame_highscore_rank) {
+		placement->font_color = highscore_entry->performance.verdict_passed ? COLOR_SUN_FLOWER : COLOR_ORANGE;
+	}
+
+	switch (x) {
+		case 0:
+			csnprintf(dest_buf, dest_buf_length, "%d", highscore_rank);
+			break;
+
+		case 1:
+			csnprintf(dest_buf, dest_buf_length, "%s", highscore_entry->name);
+			break;
+
+		case 2:
+			csnprintf(dest_buf, dest_buf_length, "%u", highscore_entry->performance.score);
+			break;
+
+		case 3:
+			csnprintf(dest_buf, dest_buf_length, "%u", highscore_entry->performance.max_combo);
+			break;
+
+		case 4:
+			if (highscore_entry->performance.max_score) {
+				csnprintf(dest_buf, dest_buf_length, "%.1f%%", 100. * highscore_entry->performance.score / highscore_entry->performance.max_score);
+			} else {
+				snprintf(dest_buf, dest_buf_length, "-");
+			}
+			break;
+
+		case 5:
+			csnprintf(dest_buf, dest_buf_length, "%s", highscore_entry->performance.rank);
+			break;
+	}
+}
+
 static void swbuf_render_main_screen(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {
 	const int cyberblades_offset = -5;
 	swbuf_text(swbuf, &(const struct font_placement_t) {
@@ -122,63 +184,59 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 	}, "Blades");
 
 	if (server_state->player.name[0]) {
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_SILVER), "Current player: %s", server_state->player.name);
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_CLOUDS), "Current player: %s", server_state->player.name);
 
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 2, COLOR_SILVER), "Playtime");
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 2, COLOR_SILVER), "Notes Cut");
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_SILVER), "Games Played");
-		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 2, COLOR_SILVER), "Total Score");
-		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 2, COLOR_SILVER), "Percentage");
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 2, COLOR_CLOUDS), "Playtime");
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 2, COLOR_CLOUDS), "Notes Cut");
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_CLOUDS), "Games Played");
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 2, COLOR_CLOUDS), "Total Score");
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 2, COLOR_CLOUDS), "Percentage");
 
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 3, COLOR_SILVER), CPRINTF_FMT_TIME_SECS, server_state->player.today.playtime_secs);
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 3, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.today.passed_notes_sum - server_state->player.today.missed_notes_sum));
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 3, COLOR_SILVER), "%u", server_state->player.today.games_played);
-		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 3, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.today.score_sum);
-		if (server_state->player.today.max_score_sum) {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_SILVER), "%.1f", 100. * server_state->player.today.score_sum / server_state->player.today.max_score_sum);
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 3, COLOR_CLOUDS), CPRINTF_FMT_TIME_SECS, server_state->player.today.total_playtime_secs);
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 3, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.today.total_passed_notes - server_state->player.today.total_missed_notes));
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 3, COLOR_CLOUDS), "%u", server_state->player.today.games_played);
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 3, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.today.total_score);
+		if (server_state->player.today.total_max_score) {
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_CLOUDS), "%.1f%%", 100. * server_state->player.today.total_score / server_state->player.today.total_max_score);
 		} else {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_SILVER), "—");
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_CLOUDS), "—");
 		}
 
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 4, COLOR_SILVER), CPRINTF_FMT_TIME_SECS, server_state->player.alltime.playtime_secs);
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 4, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.alltime.passed_notes_sum - server_state->player.alltime.missed_notes_sum));
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 4, COLOR_SILVER), "%u", server_state->player.alltime.games_played);
-		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 4, COLOR_SILVER), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.alltime.score_sum);
-		if (server_state->player.alltime.max_score_sum) {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "%.1f", 100. * server_state->player.alltime.score_sum / server_state->player.alltime.max_score_sum);
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 4, COLOR_CLOUDS), CPRINTF_FMT_TIME_SECS, server_state->player.alltime.total_playtime_secs);
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 4, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.alltime.total_passed_notes - server_state->player.alltime.total_missed_notes));
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 4, COLOR_CLOUDS), "%u", server_state->player.alltime.games_played);
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 4, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.alltime.total_score);
+		if (server_state->player.alltime.total_max_score) {
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_CLOUDS), "%.1f%%", 100. * server_state->player.alltime.total_score / server_state->player.alltime.total_max_score);
 		} else {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "—");
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_CLOUDS), "—");
 		}
 
-		swbuf_text(swbuf, TEXT_PLACEMENT(-700, 500 + 45 * 0, COLOR_SILVER), "Rank");
-		swbuf_text(swbuf, TEXT_PLACEMENT(-500, 500 + 45 * 0, COLOR_SILVER), "Player");
-		swbuf_text(swbuf, TEXT_PLACEMENT(-300, 500 + 45 * 0, COLOR_SILVER), "Score");
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 500 + 45 * 0, COLOR_SILVER), "Max Combo");
-		swbuf_text(swbuf, TEXT_PLACEMENT(200, 500 + 45 * 0, COLOR_SILVER), "Rank");
-		for (unsigned int i = 0; i < server_state->highscores.entry_count; i++) {
-			uint32_t color = COLOR_SILVER;
-			if (!strcmp(server_state->highscores.entries[i].name, server_state->player.name)) {
-				color = COLOR_CLOUDS;
-			}
-			if (i + 1 == server_state->highscores.lastgame_highscore_rank) {
-				color = COLOR_AMETHYST;
-			}
-			swbuf_text(swbuf, TEXT_PLACEMENT(-700, 500 + 45 * (1 + i), color), "%d", i + 1);
-			swbuf_text(swbuf, TEXT_PLACEMENT(-500, 500 + 45 * (1 + i), color), "%s", server_state->highscores.entries[i].name);
-			swbuf_text(swbuf, TEXT_PLACEMENT(-300, 500 + 45 * (1 + i), color), "%u", server_state->highscores.entries[i].performance.score);
-			swbuf_text(swbuf, TEXT_PLACEMENT(0, 500 + 45 * (1 + i), color), "%u", server_state->highscores.entries[i].performance.max_combo);
-			swbuf_text(swbuf, TEXT_PLACEMENT(200, 500 + 45 * (1 + i), color), "%s", server_state->highscores.entries[i].performance.rank);
-		}
-
-//		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "Percentage");
-		/*
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Games Played " CPRINTF_FMT_TIME_SECS, server_state->player.today.playtime_secs);
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Playtime" CPRINTF_FMT_TIME_SECS, server_state->player.today.playtime_secs);
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 2, COLOR_SILVER), "Scoresum: " CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.today.score_sum);
-
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 4, COLOR_SILVER), "Playtime: " CPRINTF_FMT_TIME_SECS, server_state->player.alltime.playtime_secs);
-		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 5, COLOR_SILVER), "Scoresum: " CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.alltime.score_sum);
-		*/
+		const struct table_definition_t table = {
+			.rows = 1 + server_state->highscores.entry_count,
+			.columns = 6,
+			.row_height = 45,
+			.column_widths = (unsigned int[]) { 100, 250, 200, 250, 150, 100 },
+			.anchor = {
+				 .src_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.dst_anchor = {
+					.x = XPOS_CENTER,
+					.y = YPOS_TOP,
+				},
+				.xoffset = 0,
+				.yoffset = 420,
+			},
+			.rendering_callback = render_highscore_table,
+			.font_default = {
+				.font_face = "Roboto",
+				.font_size = 40,
+				.font_color = COLOR_CLOUDS,
+			},
+		};
+		swbuf_render_table(swbuf, &table, (void*)server_state);
 	} else {
 		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 0, COLOR_POMEGRANATE), "No player selected");
 	}
@@ -250,20 +308,20 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 		}
 	}, "%s", server_state->current_song.performance.rank[0] ? server_state->current_song.performance.rank : "-");
 
-	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500, COLOR_SILVER), "Combo");
-	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500 + 40, (server_state->current_song.performance.combo != server_state->current_song.performance.max_combo) ? COLOR_SILVER : COLOR_EMERLAND), "%d", server_state->current_song.performance.combo);
+	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500, COLOR_CLOUDS), "Combo");
+	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500 + 40, (server_state->current_song.performance.combo != server_state->current_song.performance.max_combo) ? COLOR_CLOUDS : COLOR_EMERLAND), "%d", server_state->current_song.performance.combo);
 
-	swbuf_text(swbuf, TEXT_PLACEMENT(-360, 500, COLOR_SILVER), "Missed Notes");
+	swbuf_text(swbuf, TEXT_PLACEMENT(-360, 500, COLOR_CLOUDS), "Missed Notes");
 	swbuf_text(swbuf, TEXT_PLACEMENT(-360, 500 + 40, server_state->current_song.performance.missed_notes ? COLOR_POMEGRANATE : COLOR_EMERLAND), "%d", server_state->current_song.performance.missed_notes);
 
-	swbuf_text(swbuf, TEXT_PLACEMENT(0, 500, COLOR_SILVER), "Total Notes");
-	swbuf_text(swbuf, TEXT_PLACEMENT(0, 500 + 40, COLOR_SILVER), "%d", server_state->current_song.performance.passed_notes);
+	swbuf_text(swbuf, TEXT_PLACEMENT(0, 500, COLOR_CLOUDS), "Total Notes");
+	swbuf_text(swbuf, TEXT_PLACEMENT(0, 500 + 40, COLOR_CLOUDS), "%d", server_state->current_song.performance.passed_notes);
 
-	swbuf_text(swbuf, TEXT_PLACEMENT(360, 500, COLOR_SILVER), "Note Percentage");
-	swbuf_text(swbuf, TEXT_PLACEMENT(360, 500 + 40, COLOR_SILVER), "%.1f%%", server_state->current_song.performance.passed_notes ? 100. * (server_state->current_song.performance.passed_notes - server_state->current_song.performance.missed_notes) / server_state->current_song.performance.passed_notes : 0);
+	swbuf_text(swbuf, TEXT_PLACEMENT(360, 500, COLOR_CLOUDS), "Note Percentage");
+	swbuf_text(swbuf, TEXT_PLACEMENT(360, 500 + 40, COLOR_CLOUDS), "%.1f%%", server_state->current_song.performance.passed_notes ? 100. * (server_state->current_song.performance.passed_notes - server_state->current_song.performance.missed_notes) / server_state->current_song.performance.passed_notes : 0);
 
-	swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 500, COLOR_SILVER), "Max Combo");
-	swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 500 + 40, COLOR_SILVER), "%d", server_state->current_song.performance.max_combo);
+	swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 500, COLOR_CLOUDS), "Max Combo");
+	swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 500 + 40, COLOR_CLOUDS), "%d", server_state->current_song.performance.max_combo);
 }
 
 void swbuf_render_full_hd(const struct server_state_t *server_state, struct cairo_swbuf_t *swbuf) {

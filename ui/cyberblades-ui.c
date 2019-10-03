@@ -36,6 +36,13 @@
 #include "cyberblades-ui.h"
 #include "renderer_fullhd.h"
 
+static bool string_is(const char *str1, const char *str2) {
+	if (!str1 || !str2) {
+		return false;
+	}
+	return !strcmp(str1, str2);
+}
+
 static void parse_performance(struct performance_info_t *performance, struct jsondom_t *json) {
 	performance->score = jsondom_get_dict_int(json, "score");
 	performance->max_score = jsondom_get_dict_int(json, "max_score");
@@ -50,6 +57,7 @@ static void parse_performance(struct performance_info_t *performance, struct jso
 	} else {
 		performance->rank[0] = 0;
 	}
+	performance->verdict_passed = string_is(jsondom_get_dict_str(json, "verdict"), "pass");
 }
 
 static void parse_game_info(struct song_info_t *song, struct jsondom_t *song_json) {
@@ -77,11 +85,11 @@ static void parse_game_info(struct song_info_t *song, struct jsondom_t *song_jso
 
 static void parse_player_stats(struct player_stats_t *stats, struct jsondom_t *stat_json) {
 	stats->games_played = jsondom_get_dict_int(stat_json, "games_played");
-	stats->playtime_secs = jsondom_get_dict_float(stat_json, "playtime_secs");
-	stats->passed_notes_sum = jsondom_get_dict_int(stat_json, "passed_notes_sum");
-	stats->missed_notes_sum = jsondom_get_dict_int(stat_json, "missed_notes_sum");
-	stats->score_sum = jsondom_get_dict_int(stat_json, "score_sum");
-	stats->max_score_sum = jsondom_get_dict_int(stat_json, "max_score_sum");
+	stats->total_playtime_secs = jsondom_get_dict_float(stat_json, "total_playtime_secs");
+	stats->total_passed_notes = jsondom_get_dict_int(stat_json, "total_passed_notes");
+	stats->total_missed_notes = jsondom_get_dict_int(stat_json, "total_missed_notes");
+	stats->total_score = jsondom_get_dict_int(stat_json, "total_score");
+	stats->total_max_score = jsondom_get_dict_int(stat_json, "total_max_score");
 }
 
 static void set_player(struct server_state_t *server_state, const char *new_player) {
