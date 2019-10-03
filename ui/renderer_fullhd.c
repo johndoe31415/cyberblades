@@ -137,7 +137,7 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 		if (server_state->player.today.max_score_sum) {
 			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_SILVER), "%.1f", 100. * server_state->player.today.score_sum / server_state->player.today.max_score_sum);
 		} else {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_SILVER), "-");
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_SILVER), "—");
 		}
 
 		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 4, COLOR_SILVER), CPRINTF_FMT_TIME_SECS, server_state->player.alltime.playtime_secs);
@@ -147,8 +147,29 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 		if (server_state->player.alltime.max_score_sum) {
 			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "%.1f", 100. * server_state->player.alltime.score_sum / server_state->player.alltime.max_score_sum);
 		} else {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "-");
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "—");
 		}
+
+		swbuf_text(swbuf, TEXT_PLACEMENT(-700, 500 + 45 * 0, COLOR_SILVER), "Rank");
+		swbuf_text(swbuf, TEXT_PLACEMENT(-500, 500 + 45 * 0, COLOR_SILVER), "Player");
+		swbuf_text(swbuf, TEXT_PLACEMENT(-300, 500 + 45 * 0, COLOR_SILVER), "Score");
+		swbuf_text(swbuf, TEXT_PLACEMENT(0, 500 + 45 * 0, COLOR_SILVER), "Max Combo");
+		swbuf_text(swbuf, TEXT_PLACEMENT(200, 500 + 45 * 0, COLOR_SILVER), "Rank");
+		for (unsigned int i = 0; i < server_state->highscores.entry_count; i++) {
+			uint32_t color = COLOR_SILVER;
+			if (!strcmp(server_state->highscores.entries[i].name, server_state->player.name)) {
+				color = COLOR_CLOUDS;
+			}
+			if (i + 1 == server_state->highscores.lastgame_highscore_rank) {
+				color = COLOR_AMETHYST;
+			}
+			swbuf_text(swbuf, TEXT_PLACEMENT(-700, 500 + 45 * (1 + i), color), "%d", i + 1);
+			swbuf_text(swbuf, TEXT_PLACEMENT(-500, 500 + 45 * (1 + i), color), "%s", server_state->highscores.entries[i].name);
+			swbuf_text(swbuf, TEXT_PLACEMENT(-300, 500 + 45 * (1 + i), color), "%u", server_state->highscores.entries[i].performance.score);
+			swbuf_text(swbuf, TEXT_PLACEMENT(0, 500 + 45 * (1 + i), color), "%u", server_state->highscores.entries[i].performance.max_combo);
+			swbuf_text(swbuf, TEXT_PLACEMENT(200, 500 + 45 * (1 + i), color), "%s", server_state->highscores.entries[i].performance.rank);
+		}
+
 //		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_SILVER), "Percentage");
 		/*
 		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 1, COLOR_SILVER), "Games Played " CPRINTF_FMT_TIME_SECS, server_state->player.today.playtime_secs);

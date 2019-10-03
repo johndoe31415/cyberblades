@@ -386,6 +386,26 @@ struct jsondom_t* jsondom_get_dict_dict(struct jsondom_t *element, const char *k
 	}
 }
 
+struct jsondom_t* jsondom_get_dict_array(struct jsondom_t *element, const char *key) {
+	struct jsondom_t *value = jsondom_get_dict(element, key);
+	if (value && (value->elementtype == JD_ARRAY)) {
+		return value;
+	} else {
+		return NULL;
+	}
+}
+
+struct jsondom_t* jsondom_get_array_item(struct jsondom_t *element, unsigned int index) {
+	if ((!element) || (element->elementtype != JD_ARRAY)) {
+		return NULL;
+	}
+	if (index < element->element.array.element_cnt) {
+		return element->element.array.elements[index];
+	} else {
+		return NULL;
+	}
+}
+
 #ifdef TEST_JSONDOM
 // gcc -Wall -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror=implicit-function-declaration -Werror=format -Wshadow -Wswitch -pthread -std=c11 -DTEST_JSONDOM jsondom.c -o jsondom -ggdb3 -fsanitize=address -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer -D_FORTITY_SOURCE=2 `pkg-config --cflags --libs yajl` && ./jsondom
 

@@ -71,6 +71,8 @@ int64_t jsondom_get_dict_int(struct jsondom_t *element, const char *key);
 double jsondom_get_dict_float(struct jsondom_t *element, const char *key);
 bool jsondom_get_dict_bool(struct jsondom_t *element, const char *key);
 struct jsondom_t* jsondom_get_dict_dict(struct jsondom_t *element, const char *key);
+struct jsondom_t* jsondom_get_dict_array(struct jsondom_t *element, const char *key);
+struct jsondom_t* jsondom_get_array_item(struct jsondom_t *element, unsigned int index);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

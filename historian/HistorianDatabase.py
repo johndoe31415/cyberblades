@@ -243,9 +243,7 @@ class HistorianDatabase():
 		if result["lastgame"] is not None:
 			song_key = self._SongKey(**{ key: result["lastgame"][key] for key in [ "song_author", "song_title", "level_author", "difficulty" ] })
 			result["highscore"] = [ hs._asdict() for hs in self.get_highscores(song_key, process_fields = process_fields) ]
-			result["highscore_rank"] = self.get_highscore_rank(song_key, result["lastgame"]["score"])
-		else:
-			result["highscore"] = None
+			result["lastgame_highscore_rank"] = self.get_highscore_rank(song_key, result["lastgame"]["score"])
 		return result
 
 	def get_recent_players(self, time_duration_secs = 86400):

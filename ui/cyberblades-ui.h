@@ -27,7 +27,9 @@
 #include <pthread.h>
 #include "isleep.h"
 
-#define MAX_TEXT_WIDTH		48
+#define MAX_TEXT_WIDTH					48
+#define MAX_HIGHSCORE_ENTRY_COUNT		10
+
 
 enum ui_screen_t {
 	MAIN_SCREEN = 0,
@@ -66,6 +68,17 @@ struct song_info_t {
 	struct performance_info_t performance;
 };
 
+struct highscore_entry_t {
+	char name[MAX_TEXT_WIDTH];
+	struct performance_info_t performance;
+};
+
+struct highscore_table_t {
+	unsigned int entry_count;
+	struct highscore_entry_t entries[MAX_HIGHSCORE_ENTRY_COUNT];
+	unsigned int lastgame_highscore_rank;
+};
+
 struct player_stats_t {
 	unsigned int games_played;
 	unsigned int playtime_secs;
@@ -91,6 +104,7 @@ struct server_state_t {
 
 	struct player_info_t last_player;
 	struct song_info_t last_song;
+	struct highscore_table_t highscores;
 
 	struct historian_t *historian;
 	struct isleep_t isleep;

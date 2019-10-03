@@ -36,22 +36,26 @@
 #include "cyberblades-ui.h"
 #include "renderer_fullhd.h"
 
+static void parse_performance(struct performance_info_t *performance, struct jsondom_t *json) {
+	performance->score = jsondom_get_dict_int(json, "score");
+	performance->max_score = jsondom_get_dict_int(json, "max_score");
+	performance->combo = jsondom_get_dict_int(json, "combo");
+	performance->max_combo = jsondom_get_dict_int(json, "max_combo");
+	performance->hit_notes = jsondom_get_dict_int(json, "hit_notes");
+	performance->passed_notes = jsondom_get_dict_int(json, "passed_notes");
+	performance->missed_notes = jsondom_get_dict_int(json, "missed_notes");
+	const char *rank = jsondom_get_dict_str(json, "rank");
+	if (rank) {
+		strncpy(performance->rank, rank, sizeof(performance->rank) - 1);
+	} else {
+		performance->rank[0] = 0;
+	}
+}
+
 static void parse_game_info(struct song_info_t *song, struct jsondom_t *song_json) {
 	struct jsondom_t *json_current_game_perf = jsondom_get_dict_dict(song_json, "performance");
 	if (json_current_game_perf) {
-		song->performance.score = jsondom_get_dict_int(json_current_game_perf, "score");
-		song->performance.max_score = jsondom_get_dict_int(json_current_game_perf, "max_score");
-		song->performance.combo = jsondom_get_dict_int(json_current_game_perf, "combo");
-		song->performance.max_combo = jsondom_get_dict_int(json_current_game_perf, "max_combo");
-		song->performance.hit_notes = jsondom_get_dict_int(json_current_game_perf, "hit_notes");
-		song->performance.passed_notes = jsondom_get_dict_int(json_current_game_perf, "passed_notes");
-		song->performance.missed_notes = jsondom_get_dict_int(json_current_game_perf, "missed_notes");
-		const char *rank = jsondom_get_dict_str(json_current_game_perf, "rank");
-		if (rank) {
-			strncpy(song->performance.rank, rank, sizeof(song->performance.rank) - 1);
-		} else {
-			song->performance.rank[0] = 0;
-		}
+		parse_performance(&song->performance, json_current_game_perf);
 	}
 
 	struct jsondom_t *json_current_game_meta = jsondom_get_dict_dict(song_json, "meta");
@@ -80,7 +84,11 @@ static void parse_player_stats(struct player_stats_t *stats, struct jsondom_t *s
 	stats->max_score_sum = jsondom_get_dict_int(stat_json, "max_score_sum");
 }
 
-static void request_new_player_info(struct server_state_t *server_state) {
+static void set_player(struct server_state_t *server_state, const char *new_player) {
+	historian_command(server_state->historian, "set_player", "\"player\":\"%s\"", new_player);
+}
+
+static void request_player_information(struct server_state_t *server_state) {
 	historian_command(server_state->historian, "playerinfo", "\"player\":\"%s\"", server_state->player.name);
 }
 
@@ -90,7 +98,7 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 	if (json_connection) {
 		if (strncpycmp(server_state->player.name, jsondom_get_dict_str(json_connection, "current_player"), sizeof(server_state->player.name))) {
 			/* Player name has changed */
-			request_new_player_info(server_state);
+			request_player_information(server_state);
 		}
 		server_state->connected_to_beatsaber = jsondom_get_dict_bool(json_connection, "connected_to_beatsaber");
 
@@ -108,6 +116,11 @@ static void event_handle_historian_status(struct server_state_t *server_state, s
 	isleep_interrupt(&server_state->isleep);
 }
 
+static void parse_highscore_entry(struct highscore_entry_t *entry, struct jsondom_t *json) {
+	strncpycmp(entry->name, jsondom_get_dict_str(json, "player"), sizeof(entry->name));
+	parse_performance(&entry->performance, json);
+}
+
 static void event_handle_historian_playerinfo(struct server_state_t *server_state, struct jsondom_t *json) {
 	jsondom_dump(json);
 	const char *player = jsondom_get_dict_str(json, "player");
@@ -117,6 +130,19 @@ static void event_handle_historian_playerinfo(struct server_state_t *server_stat
 	}
 	parse_player_stats(&server_state->player.today, jsondom_get_dict_dict(json, "today"));
 	parse_player_stats(&server_state->player.alltime, jsondom_get_dict_dict(json, "alltime"));
+
+	struct jsondom_t *highscore = jsondom_get_dict_array(json, "highscore");
+	if (highscore) {
+		unsigned int highscore_entry_count = highscore->element.array.element_cnt;
+		server_state->highscores.entry_count = (highscore_entry_count > MAX_HIGHSCORE_ENTRY_COUNT) ? MAX_HIGHSCORE_ENTRY_COUNT : highscore_entry_count;
+		for (unsigned int i = 0; i < server_state->highscores.entry_count; i++) {
+			struct jsondom_t *highscore_entry = jsondom_get_array_item(highscore, i);
+			parse_highscore_entry(&server_state->highscores.entries[i], highscore_entry);
+		}
+		server_state->highscores.lastgame_highscore_rank = jsondom_get_dict_int(json, "lastgame_highscore_rank");
+	} else {
+		server_state->highscores.entry_count = 0;
+	}
 }
 
 static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *ctx) {
@@ -129,17 +155,23 @@ static void event_callback(enum ui_eventtype_t event_type, void *vevent, void *c
 	} else if (event_type == EVENT_KEYPRESS) {
 		struct ui_event_keypress_t *event = (struct ui_event_keypress_t*)vevent;
 		if (event->key == SDLK_BACKSPACE) {
-			int len = strlen(server_state->player.name);
-			server_state->player.name[len - 1] = 0;
-			request_new_player_info(server_state);
+			char new_name[sizeof(server_state->player.name)];
+			strcpy(new_name, server_state->player.name);
+			int len = strlen(new_name);
+			if (len) {
+				new_name[len - 1] = 0;
+			}
+			set_player(server_state, new_name);
 		}
 	} else if (event_type == EVENT_TEXTDATA) {
 		struct ui_event_textdata_t *event = (struct ui_event_textdata_t*)vevent;
 		int len = strlen(server_state->player.name);
 		int add_len = strlen(event->text);
-		if (len + add_len < MAX_TEXT_WIDTH) {
-			strcat(server_state->player.name, event->text);
-			request_new_player_info(server_state);
+		if (len + add_len < sizeof(server_state->player.name)) {
+			char new_name[sizeof(server_state->player.name)];
+			strcpy(new_name, server_state->player.name);
+			strcat(new_name, event->text);
+			set_player(server_state, new_name);
 		}
 	} else if (event_type == EVENT_HISTORIAN_MESSAGE) {
 		struct ui_event_historian_msg_t *event = (struct ui_event_historian_msg_t*)vevent;
