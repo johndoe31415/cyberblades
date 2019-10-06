@@ -43,6 +43,7 @@ if not args.no_pkgs:
 		"libyajl-dev", "libyajl2",
 		"libcairo-dev",
 		"python3-pip",
+		"fonts-roboto",
 	]
 	subprocess.check_call([ "apt-get", "--yes", "install" ] + required_pkgs)
 	subprocess.check_call([ "pip3", "install", "websockets", "tzlocal", "numpy" ])
