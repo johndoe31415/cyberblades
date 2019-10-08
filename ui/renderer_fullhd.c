@@ -123,7 +123,7 @@ static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_l
 			break;
 
 		case 5:
-			/* Modifiers */
+			/* TODO: Modifiers */
 			break;
 
 		case 6:

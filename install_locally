@@ -40,10 +40,12 @@ if not args.no_pkgs:
 	subprocess.check_call([ "apt-get", "update" ])
 	required_pkgs = [
 		"build-essential",
-		"libyajl-dev", "libyajl2",
+		"libsdl2-dev",
 		"libcairo-dev",
-		"python3-pip",
+		"libyajl-dev", "libyajl2",
 		"fonts-roboto",
+		"python3-pip",
+		"libatlas3-base",			# Unsatisfied numpy dependency ("ImportError: libf77blas.so.3: cannot open shared object file")
 	]
 	subprocess.check_call([ "apt-get", "--yes", "install" ] + required_pkgs)
 	subprocess.check_call([ "pip3", "install", "websockets", "tzlocal", "numpy" ])
