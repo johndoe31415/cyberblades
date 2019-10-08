@@ -89,6 +89,27 @@ class ScoreKeeper():
 			"rank":				event["status"]["performance"]["rank"],
 		}
 
+	@staticmethod
+	def _parse_modifiers(mod_dict):
+		modifiers = set()
+		for (key, modifier) in (
+				("instaFail", "insta-fail"),
+				("noFail", "insta-fail"),
+				("disappearingArrows", "disappearing-arrows"),
+				("noBombs", "no-bombs"),
+				("noArrows", "no-arrows"),
+				("ghostNotes", "ghost-notes"),
+			):
+			if mod_dict.get(key):
+				modifiers.add(modifier)
+		if mod_dict.get("songSpeed").lower() == "slower":
+			modifiers.add("songspeed-slower")
+		elif mod_dict.get("songSpeed").lower() == "faster":
+			modifiers.add("songspeed-faster")
+		if mod_dict.get("obstables") is False:
+			modifiers.add("no-obstacles")
+		return sorted(list(modifiers))
+
 	def process(self, event):
 		etype = event["event"]
 		if etype == "scoreChanged":
@@ -108,6 +129,8 @@ class ScoreKeeper():
 					"max_score":		event["status"]["beatmap"]["maxScore"],
 					"notes_cnt":		event["status"]["beatmap"]["notesCount"],
 					"difficulty":		int(DifficultyEnum.byname(event["status"]["beatmap"]["difficulty"])),
+					"modifiers":		self._parse_modifiers(event["status"]["mod"]),
+					"multiplier":		event["status"]["mod"]["multiplier"],
 				},
 			}
 			self._hashdata += [ self._data["meta"]["start_ts"], self._data["meta"]["song_author"], self._data["meta"]["song_title"], self._data["meta"]["level_author"], self._data["meta"]["difficulty"], self._data["meta"]["notes_cnt"] ]
@@ -152,6 +175,8 @@ if __name__ == "__main__":
 	dirname = "history/joe/"
 	#for filename in [ "2019_09_24_20_24_44.json" ]:
 	for filename in os.listdir(dirname):
+		if not filename.endswith(".json"):
+			continue
 		filename = dirname + filename
 		with open(filename) as f:
 			history = json.load(f)

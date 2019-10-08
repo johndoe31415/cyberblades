@@ -52,6 +52,8 @@ class HistorianDatabase():
 				song_title varchar NOT NULL,
 				level_author varchar NOT NULL,
 				difficulty integer NOT NULL,
+				modifiers NOT NULL,
+				multiplier float NOT NULL,
 
 				playtime float NOT NULL,
 				pausetime float NOT NULL,
@@ -126,6 +128,8 @@ class HistorianDatabase():
 				"song_title":		skr["meta"]["song_title"],
 				"level_author":		skr["meta"]["level_author"],
 				"difficulty":		skr["meta"]["difficulty"],
+				"modifiers":		json.dumps(skr["meta"]["modifiers"]),
+				"multiplier":		skr["meta"]["multiplier"],
 
 				"playtime":			skr["meta"]["playtime"],
 				"pausetime":		skr["meta"]["pausetime"],
@@ -139,6 +143,7 @@ class HistorianDatabase():
 				"hit_bombs":		skr["final"]["hit_bombs"],
 				"passed_notes":		skr["final"]["passed_notes"],
 				"missed_notes":		skr["final"]["missed_notes"],
+
 			}
 			self._insert_result(rowdata)
 
@@ -203,7 +208,7 @@ class HistorianDatabase():
 
 	def get_highscores(self, song_key, limit = 100):
 		table = self._cursor.execute("""
-			SELECT gameid, player, local_ts, score, max_score, rank, max_combo, verdict
+			SELECT gameid, player, local_ts, score, max_score, rank, max_combo, verdict, missed_notes, modifiers
 			FROM results
 			WHERE (song_title = ?) AND (song_author = ?) AND (level_author = ?) AND (difficulty = ?)
 			ORDER BY score DESC, max_combo DESC
@@ -212,6 +217,7 @@ class HistorianDatabase():
 		last_score = None
 		rank = 0
 		for entry in table:
+			entry["modifiers"] = json.loads(entry["modifiers"])
 			this_score = (entry["score"], entry["max_combo"])
 			if this_score != last_score:
 				rank += 1
