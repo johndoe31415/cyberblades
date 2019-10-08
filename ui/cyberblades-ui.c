@@ -64,6 +64,8 @@ static void parse_game_info(struct song_info_t *song, struct jsondom_t *song_jso
 	struct jsondom_t *json_current_game_perf = jsondom_get_dict_dict(song_json, "performance");
 	if (json_current_game_perf) {
 		parse_performance(&song->performance, json_current_game_perf);
+	} else {
+		memset(&song->performance, 0, sizeof(song->performance));
 	}
 
 	struct jsondom_t *json_current_game_meta = jsondom_get_dict_dict(song_json, "meta");
@@ -250,9 +252,7 @@ int main(int argc, char **argv) {
 	register_signal_handler(event_callback, &server_state);
 
 	cairo_addfont("../external/beon/beon-webfont.ttf");
-	cairo_addfont("../external/digital-7.mono.ttf");
-	cairo_addfont("../external/digital-dream.fat.ttf");
-	cairo_addfont("../external/oblivious/OBLIVIOUSFONT.TTF");
+	cairo_addfont("../external/instruction/Instruction.ttf");
 
 	if (!display) {
 		fprintf(stderr, "Could not create display.\n");

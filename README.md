@@ -75,13 +75,16 @@ pixel display board. Here are the steps to set it up:
     documented. Works like a charm, thanks!
 
 ## What's with the name?
-Once my wife couldn't remember the name of BeatSaber and called it
+One time my wife couldn't remember the name of BeatSaber and called it
 "CyberBlades". I love the name and we use it all the time now as an inside
 joke. So now CyberBlades is something "official" :-)
 
 ## Used other work
   - Font "Beon" by Bastien Sozeau (contact@sozoo.fr) used in accordance with
     the SIL OPEN FONT LICENSE Version 1.1
+  - Font "Instruction" by Neale Davidson/Pixel Sagas (jaynz@pixelsagas.com)
+    used in accordance with the Pixel Sagas Freeware Fonts EULA and Software
+    Inclusion Agreement.
 
 ## License
 GNU GPL-3 for all of my code, external dependencies under their respective

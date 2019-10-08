@@ -25,6 +25,8 @@
 #include "cairo.h"
 #include "historian.h"
 
+#define STR_ENDASH								"–"
+
 #define FONT_HEADING_SIZE						128
 #define FONT_HEADING							.font_face = "Beon", .font_size = FONT_HEADING_SIZE
 #define TEXT_PLACEMENT(xoff, yoff, color)		&(const struct font_placement_t) {		\
@@ -117,6 +119,14 @@ static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_l
 			break;
 
 		case 4:
+			csnprintf(dest_buf, dest_buf_length, "%u", entry->performance.missed_notes);
+			break;
+
+		case 5:
+			/* Modifiers */
+			break;
+
+		case 6:
 			if (entry->performance.max_score) {
 				csnprintf(dest_buf, dest_buf_length, "%.1f%%", 100. * entry->performance.score / entry->performance.max_score);
 			} else {
@@ -124,7 +134,7 @@ static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_l
 			}
 			break;
 
-		case 5:
+		case 7:
 			csnprintf(dest_buf, dest_buf_length, "%s", entry->performance.rank);
 			break;
 	}
@@ -133,17 +143,22 @@ static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_l
 static void render_highscore_table(char *dest_buf, unsigned int dest_buf_length, struct font_placement_t *placement, unsigned int x, unsigned int y, void *ctx) {
 	const struct server_state_t *server_state = (const struct server_state_t*)ctx;
 
-	if ((y == 0) && (x < 6)) {
-		const char *heading[] = {
+	if (y == 0) {
+		const char *column_headings[] = {
 			"#",
 			"Player",
 			"Score",
-			"Max Combo",
+			"Combo",
+			"Miss",
+			"Mods",
 			"%",
 			"Rank",
 		};
-		strncpy(dest_buf, heading[x], dest_buf_length);
-		placement->font_bold = true;
+		const unsigned int col_count = sizeof(column_headings) / sizeof(column_headings[0]);
+	 	if (x < col_count) {
+			strncpy(dest_buf, column_headings[x], dest_buf_length);
+			placement->font_bold = true;
+		}
 		return;
 	}
 
@@ -272,9 +287,9 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 
 		const struct table_definition_t table = {
 			.rows = 1 + server_state->highscores.entry_count,
-			.columns = 6,
+			.columns = 8,
 			.row_height = 45,
-			.column_widths = (unsigned int[]) { 100, 250, 200, 250, 150, 100 },
+			.column_widths = (unsigned int[]) { 100, 250, 200, 150, 150, 150, 150, 100 },
 			.anchor = {
 				 .src_anchor = {
 					.x = XPOS_CENTER,
@@ -306,9 +321,8 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 	static unsigned int last_score_width = 0;
 	swbuf_render_heading(swbuf, "Game On");
 	last_score_width = swbuf_text(swbuf, &(const struct font_placement_t){
-//		.font_face = "Digital Dream Fat",
-		.font_face = "Oblivious Font",
-		.font_size = 96,
+		.font_face = "Instruction",
+		.font_size = 140,
 		.font_color = COLOR_SUN_FLOWER,
 		.last_width = last_score_width,
 		.max_width_deviation = 10,
@@ -327,8 +341,8 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 
 	static unsigned int last_percentage_width = 0;
 	last_percentage_width = swbuf_text(swbuf, &(const struct font_placement_t){
-		.font_face = "Oblivious Font",
-		.font_size = 64,
+		.font_face = "Roboto",
+		.font_size = 80,
 		.font_color = COLOR_ORANGE,
 		.last_width = last_percentage_width,
 		.max_width_deviation = 10,
@@ -347,8 +361,8 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 	}, "%.1f%%", server_state->current_song.performance.max_score ? 100. * server_state->current_song.performance.score / server_state->current_song.performance.max_score : 0);
 
 	swbuf_text(swbuf, &(const struct font_placement_t){
-		.font_face = "Oblivious Font",
-		.font_size = 64,
+		.font_face = "Roboto",
+		.font_size = 80,
 		.font_color = COLOR_ORANGE,
 		.last_width = last_percentage_width,
 		.max_width_deviation = 10,
@@ -364,7 +378,7 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 			.xoffset = 10 + 200,
 			.yoffset = 200 + 96 + 96,
 		}
-	}, "%s", server_state->current_song.performance.rank[0] ? server_state->current_song.performance.rank : "-");
+	}, "%s", server_state->current_song.performance.rank[0] ? server_state->current_song.performance.rank : STR_ENDASH);
 
 	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500, COLOR_CLOUDS), "Combo");
 	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500 + 40, (server_state->current_song.performance.combo != server_state->current_song.performance.max_combo) ? COLOR_CLOUDS : COLOR_EMERLAND), "%d", server_state->current_song.performance.combo);
