@@ -24,8 +24,10 @@
 #include "cyberblades-ui.h"
 #include "cairo.h"
 #include "historian.h"
+#include "cformat.h"
 
 #define STR_ENDASH								"–"
+#define STR_EMDASH								"—"
 
 #define FONT_HEADING_SIZE						128
 #define FONT_HEADING							.font_face = "Beon", .font_size = FONT_HEADING_SIZE
@@ -103,23 +105,23 @@ static void swbuf_render_main_screen_bottom_box(const struct server_state_t *ser
 static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_length, unsigned int x, const struct highscore_entry_t *entry) {
 	switch (x) {
 		case 0:
-			csnprintf(dest_buf, dest_buf_length, "%d", entry->number);
+			snprintf(dest_buf, dest_buf_length, "%d", entry->number);
 			break;
 
 		case 1:
-			csnprintf(dest_buf, dest_buf_length, "%s", entry->name);
+			snprintf(dest_buf, dest_buf_length, "%s", entry->name);
 			break;
 
 		case 2:
-			csnprintf(dest_buf, dest_buf_length, "%u", entry->performance.score);
+			snprintf(dest_buf, dest_buf_length, "%u", entry->performance.score);
 			break;
 
 		case 3:
-			csnprintf(dest_buf, dest_buf_length, "%u", entry->performance.max_combo);
+			snprintf(dest_buf, dest_buf_length, "%u", entry->performance.max_combo);
 			break;
 
 		case 4:
-			csnprintf(dest_buf, dest_buf_length, "%u", entry->performance.missed_notes);
+			snprintf(dest_buf, dest_buf_length, "%u", entry->performance.missed_notes);
 			break;
 
 		case 5:
@@ -128,14 +130,14 @@ static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_l
 
 		case 6:
 			if (entry->performance.max_score) {
-				csnprintf(dest_buf, dest_buf_length, "%.1f%%", 100. * entry->performance.score / entry->performance.max_score);
+				snprintf(dest_buf, dest_buf_length, "%.1f%%", 100. * entry->performance.score / entry->performance.max_score);
 			} else {
-				snprintf(dest_buf, dest_buf_length, "—");
+				snprintf(dest_buf, dest_buf_length, STR_EMDASH);
 			}
 			break;
 
 		case 7:
-			csnprintf(dest_buf, dest_buf_length, "%s", entry->performance.rank);
+			snprintf(dest_buf, dest_buf_length, "%s", entry->performance.rank);
 			break;
 	}
 }
@@ -265,24 +267,24 @@ static void swbuf_render_main_screen(const struct server_state_t *server_state, 
 		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 2, COLOR_CLOUDS), "Total Score");
 		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 2, COLOR_CLOUDS), "Percentage");
 
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 3, COLOR_CLOUDS), CPRINTF_FMT_TIME_SECS, server_state->player.today.total_playtime_secs);
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 3, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.today.total_passed_notes - server_state->player.today.total_missed_notes));
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 3, COLOR_CLOUDS), "%s", cformat_sbuf_time_secs(server_state->player.today.total_playtime_secs));
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 3, COLOR_CLOUDS), "%s", cformat_sbuf_si_float((double)(server_state->player.today.total_passed_notes - server_state->player.today.total_missed_notes)));
 		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 3, COLOR_CLOUDS), "%u", server_state->player.today.games_played);
-		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 3, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.today.total_score);
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 3, COLOR_CLOUDS), "%s", cformat_sbuf_si_float((double)server_state->player.today.total_score));
 		if (server_state->player.today.total_max_score) {
 			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_CLOUDS), "%.1f%%", 100. * server_state->player.today.total_score / server_state->player.today.total_max_score);
 		} else {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_CLOUDS), "—");
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 3, COLOR_CLOUDS), STR_EMDASH);
 		}
 
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 4, COLOR_CLOUDS), CPRINTF_FMT_TIME_SECS, server_state->player.alltime.total_playtime_secs);
-		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 4, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)(server_state->player.alltime.total_passed_notes - server_state->player.alltime.total_missed_notes));
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 200 + 45 * 4, COLOR_CLOUDS), "%s", cformat_sbuf_time_secs(server_state->player.alltime.total_playtime_secs));
+		swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 1, 200 + 45 * 4, COLOR_CLOUDS), "%s", cformat_sbuf_si_float((double)(server_state->player.alltime.total_passed_notes - server_state->player.alltime.total_missed_notes)));
 		swbuf_text(swbuf, TEXT_PLACEMENT(0, 200 + 45 * 4, COLOR_CLOUDS), "%u", server_state->player.alltime.games_played);
-		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 4, COLOR_CLOUDS), CPRINTF_FMT_SIZE_FLOAT, (double)server_state->player.alltime.total_score);
+		swbuf_text(swbuf, TEXT_PLACEMENT(360 * 1, 200 + 45 * 4, COLOR_CLOUDS), "%s", cformat_sbuf_si_float((double)server_state->player.alltime.total_score));
 		if (server_state->player.alltime.total_max_score) {
 			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_CLOUDS), "%.1f%%", 100. * server_state->player.alltime.total_score / server_state->player.alltime.total_max_score);
 		} else {
-			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_CLOUDS), "—");
+			swbuf_text(swbuf, TEXT_PLACEMENT(360 * 2, 200 + 45 * 4, COLOR_CLOUDS), STR_EMDASH);
 		}
 
 		const struct table_definition_t table = {
@@ -378,7 +380,7 @@ static void swbuf_render_game_screen(const struct server_state_t *server_state, 
 			.xoffset = 10 + 200,
 			.yoffset = 200 + 96 + 96,
 		}
-	}, "%s", server_state->current_song.performance.rank[0] ? server_state->current_song.performance.rank : STR_ENDASH);
+	}, "%s", server_state->current_song.performance.rank[0] ? server_state->current_song.performance.rank : STR_EMDASH);
 
 	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500, COLOR_CLOUDS), "Combo");
 	swbuf_text(swbuf, TEXT_PLACEMENT(-360 * 2, 500 + 40, (server_state->current_song.performance.combo != server_state->current_song.performance.max_combo) ? COLOR_CLOUDS : COLOR_EMERLAND), "%d", server_state->current_song.performance.combo);

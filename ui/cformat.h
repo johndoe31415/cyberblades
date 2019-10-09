@@ -20,18 +20,14 @@
 	Johannes Bauer <JohannesBauer@gmx.de>
 */
 
-#ifndef __CPRINTF_H__
-#define __CPRINTF_H__
-
-#include <stdarg.h>
-
-#define CPRINTF_FMT_TIME_SECS			"%1!"
-#define CPRINTF_FMT_SIZE_FLOAT			"%2!"
+#ifndef __CFORMAT_H__
+#define __CFORMAT_H__
 
 /*************** AUTO GENERATED SECTION FOLLOWS ***************/
-void cvsnprintf(char *str, size_t size, const char *fmt, va_list ap);
-void csnprintf(char *str, size_t size, const char *fmt, ...);
-void cprintf(const char *fmt, ...);
+void cformat_time_secs(char *dest, size_t size, int time_secs);
+void cformat_si_float(char *dest, size_t size, double value);
+const char *cformat_sbuf_time_secs(int time_secs);
+const char *cformat_sbuf_si_float(double value);
 /***************  AUTO GENERATED SECTION ENDS   ***************/
 
 #endif

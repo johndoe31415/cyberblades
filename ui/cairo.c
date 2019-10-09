@@ -27,7 +27,6 @@
 #include <math.h>
 #include <fontconfig/fontconfig.h>
 #include "cairo.h"
-#include "cprintf.h"
 
 struct cairo_swbuf_t *create_swbuf(unsigned int width, unsigned int height) {
 	struct cairo_swbuf_t *buffer = calloc(sizeof(struct cairo_swbuf_t), 1);
@@ -228,7 +227,7 @@ unsigned int swbuf_text(struct cairo_swbuf_t *surface, const struct font_placeme
 	char text[512];
 	va_list ap;
 	va_start(ap, fmt);
-	cvsnprintf(text, sizeof(text), fmt, ap);
+	vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
 
 	if (!placement->font_size) {

@@ -44,7 +44,7 @@ OBJS := \
 	signals.o \
 	renderer_fullhd.o \
 	llist.o \
-	cprintf.o \
+	cformat.o \
 	display_sdl.o
 
 BINARIES := cyberblades-ui cairo-fonttest
