@@ -109,7 +109,7 @@ static void render_highscore_table_entry(char *dest_buf, unsigned int dest_buf_l
 			break;
 
 		case 1:
-			snprintf(dest_buf, dest_buf_length, "%s", entry->name);
+			snprintf(dest_buf, dest_buf_length, "%s", entry->name[0] ? entry->name : STR_EMDASH);
 			break;
 
 		case 2:
